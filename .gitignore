@@ -1,0 +1,45 @@
+# Environment / secrets
+.env
+.env.test
+.env.*.local
+*.pem
+*.key
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+coverage/
+.vercel/
+
+# Prisma
+backend/prisma/*.db
+backend/prisma/*.db-journal
+
+# Flutter / Dart
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/.packages
+frontend/build/
+frontend/android/.gradle/
+frontend/android/local.properties
+frontend/android/key.properties
+frontend/ios/Pods/
+frontend/ios/.symlinks/
+frontend/macos/Pods/
+frontend/.idea/
+frontend/*.iml
+frontend/.metadata
+
+# Build output
+*.apk
+*.aab
+*.ipa
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp
