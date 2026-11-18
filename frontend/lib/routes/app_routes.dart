@@ -10,6 +10,8 @@ import '../screens/event_detail/event_detail_screen.dart';
 import '../screens/main_shell.dart';
 import '../screens/payment/payment_screen.dart';
 import '../screens/payment/payment_success_screen.dart';
+import '../screens/profile/about_screen.dart';
+import '../screens/profile/edit_profile_screen.dart';
 import '../screens/splash/splash_screen.dart';
 import '../screens/tickets/ticket_detail_screen.dart';
 
@@ -27,6 +29,8 @@ class AppRoutes {
   static const String paymentSuccess = '/payment-success';
   static const String bookingDetail = '/booking-detail';
   static const String ticketDetail = '/ticket-detail';
+  static const String editProfile = '/edit-profile';
+  static const String about = '/about';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -105,6 +109,16 @@ class AppRoutes {
         final ticketId = settings.arguments as String? ?? '';
         return MaterialPageRoute(
           builder: (_) => TicketDetailScreen(ticketId: ticketId),
+          settings: settings,
+        );
+      case editProfile:
+        return MaterialPageRoute(
+          builder: (_) => const EditProfileScreen(),
+          settings: settings,
+        );
+      case about:
+        return MaterialPageRoute(
+          builder: (_) => const AboutScreen(),
           settings: settings,
         );
       case main:

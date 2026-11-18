@@ -256,3 +256,10 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Alasan:** Menutup alur utama MVP (pesan → bayar → tiket + QR → batal) sesuai PRD tanpa dependensi baru.
 - **Dampak:** `frontend/lib/models/ticket_detail.dart`, `frontend/lib/services/booking_service.dart`, `frontend/lib/services/ticket_service.dart`, `frontend/lib/screens/bookings/booking_detail_screen.dart`, `frontend/lib/screens/tickets/ticket_detail_screen.dart`, `frontend/lib/screens/tickets/my_tickets_screen.dart`.
 - **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 8 tes lulus).
+
+## [2026-11-18] Fase 7 increment 9: Profile, Edit Profile, dan About
+- **Konteks:** PRD 7.1, FR-04, FR-05, FR-21, dan FR-22 meminta profil, edit profil, About, dan logout.
+- **Pilihan:** Profil menampilkan avatar (URL atau inisial), nama, email, telepon, serta menu Edit Profil/About/Logout dengan dialog konfirmasi. Logout membersihkan token dan kembali ke MainShell sebagai tamu. Edit Profil memakai `PUT /users/profile`; email read-only dan URL foto opsional dengan validasi http/https. About menampilkan nama, versi, deskripsi, platform, dan konteks; identitas pengembang diisi "Tim TiketKita" dan dapat diganti pemilik produk.
+- **Alasan:** Menutup seluruh layar Fase 7 tanpa menambah dependensi.
+- **Dampak:** `frontend/lib/core/utils/validators.dart`, `frontend/lib/services/auth_service.dart`, `frontend/lib/state/auth_state.dart`, `frontend/lib/widgets/user_avatar.dart`, `frontend/lib/screens/profile`, `frontend/lib/routes/app_routes.dart`, `frontend/test/validators_test.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 9 tes lulus).

@@ -97,4 +97,17 @@ class AuthState extends ChangeNotifier {
     _user = null;
     notifyListeners();
   }
+
+  Future<void> updateProfile({
+    required String name,
+    required String phone,
+    String? profileImage,
+  }) async {
+    _user = await _authService.updateProfile(
+      name: name,
+      phone: phone,
+      profileImage: profileImage,
+    );
+    notifyListeners();
+  }
 }
