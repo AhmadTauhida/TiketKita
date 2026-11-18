@@ -144,3 +144,24 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Alasan:** Memenuhi DoD Fase 3; data seed `public` terverifikasi untuk kasus gratis, stok 3, sold out, CANCELLED, dan COMPLETED.
 - **Dampak:** `src/modules/categories`, `src/modules/events`, `src/utils/serializer.js`, `src/routes/index.js`, `tests/`.
 - **Status:** diputuskan agent (terverifikasi: `npm test` 24 lulus).
+
+## [2026-11-18] Retry kode booking di tingkat transaksi
+- **Konteks:** Pelanggaran unique `booking_code` (P2002) membatalkan transaksi PostgreSQL, sehingga retry `create` di dalam transaksi yang sama tidak dapat dilanjutkan.
+- **Pilihan:** `createBooking` mengulang seluruh `prisma.$transaction` maksimal 5 kali; setiap percobaan membuat kode baru. Hanya P2002 pada `booking_code` yang diulang, error lain langsung dilempar.
+- **Alasan:** Perubahan stok dari percobaan yang gagal ikut rollback, sehingga retry aman dan sesuai PRD 13.2.
+- **Dampak:** `src/modules/bookings/service.js`, `src/utils/generate-code.js`.
+- **Status:** diputuskan agent.
+
+## [2026-11-18] Lazy expiry terpusat dan cakupan sweep
+- **Konteks:** PRD 13.6 mewajibkan sweep pada beberapa endpoint dengan cakupan pengguna/booking, serta sweep global pada pembuatan booking dan detail acara.
+- **Pilihan:** Satu fungsi `expireOverdueBookings(tx, { userId?, bookingId? })`; transisi memakai `updateMany` bersyarat `status: 'PENDING'`, dan stok dikembalikan hanya bila `count === 1`. Dipanggil pada create/list/detail/cancel booking dan `GET /events/:id` (global).
+- **Alasan:** Mencegah pengembalian stok ganda saat dua request membaca booking kedaluwarsa bersamaan.
+- **Dampak:** `src/utils/expire-bookings.js`, `src/modules/bookings/service.js`, `src/modules/events/service.js`.
+- **Status:** diputuskan agent.
+
+## [2026-11-18] Fase 4 selesai
+- **Konteks:** Implementasi Bookings dan lazy expiry beserta tes 18.1 butir 4, 5, 7, dan 8.
+- **Pilihan:** Booking atomik dengan `updateMany` bersyarat, total via `Prisma.Decimal`, pembatalan hanya PENDING, 404 untuk data pengguna lain, dan pesan status sesuai PRD 16.
+- **Alasan:** Memenuhi DoD Fase 4 tanpa menyentuh schema `public`.
+- **Dampak:** `src/modules/bookings`, `src/utils/expire-bookings.js`, `src/utils/generate-code.js`, `src/utils/serializer.js`, `tests/bookings.test.js`.
+- **Status:** diputuskan agent (terverifikasi: `npm test` 39 lulus; uji konkurensi 5 request pada stok 3 menghasilkan 3 sukses dan 2 gagal 409).

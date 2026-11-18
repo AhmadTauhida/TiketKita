@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import prisma from '../../config/database.js';
 import { NotFoundError } from '../../utils/errors.js';
+import { expireOverdueBookings } from '../../utils/expire-bookings.js';
 
 const uuidSchema = z.uuid();
 
@@ -92,14 +93,21 @@ export async function getEventDetail(eventId) {
     throw new NotFoundError('Acara tidak ditemukan');
   }
 
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-    include: detailInclude,
-  });
+  return prisma.$transaction(
+    async (tx) => {
+      await expireOverdueBookings(tx);
 
-  if (!event) {
-    throw new NotFoundError('Acara tidak ditemukan');
-  }
+      const event = await tx.event.findUnique({
+        where: { id: eventId },
+        include: detailInclude,
+      });
 
-  return event;
+      if (!event) {
+        throw new NotFoundError('Acara tidak ditemukan');
+      }
+
+      return event;
+    },
+    { timeout: 15000 },
+  );
 }
