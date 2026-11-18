@@ -1,30 +1,5 @@
+import 'event_brief.dart';
 import 'payment.dart';
-
-class BookingEvent {
-  const BookingEvent({
-    required this.id,
-    required this.title,
-    required this.eventDate,
-    required this.location,
-    this.imageUrl,
-  });
-
-  final String id;
-  final String title;
-  final String? imageUrl;
-  final DateTime eventDate;
-  final String location;
-
-  factory BookingEvent.fromJson(Map<String, dynamic> json) {
-    return BookingEvent(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      imageUrl: json['imageUrl'] as String?,
-      eventDate: DateTime.parse(json['eventDate'] as String),
-      location: json['location'] as String? ?? '',
-    );
-  }
-}
 
 class BookingItem {
   const BookingItem({
@@ -76,7 +51,7 @@ class Booking {
   final int totalQuantity;
   final DateTime? expiresAt;
   final DateTime createdAt;
-  final BookingEvent? event;
+  final EventBrief? event;
   final List<BookingItem> items;
   final Payment? payment;
 
@@ -94,7 +69,7 @@ class Booking {
           ? null
           : DateTime.parse(json['expiresAt'] as String),
       createdAt: DateTime.parse(json['createdAt'] as String),
-      event: eventJson == null ? null : BookingEvent.fromJson(eventJson),
+      event: eventJson == null ? null : EventBrief.fromJson(eventJson),
       items: items
           .whereType<Map<String, dynamic>>()
           .map(BookingItem.fromJson)

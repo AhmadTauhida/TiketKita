@@ -4,12 +4,14 @@ import '../models/booking.dart';
 import '../models/booking_draft.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
+import '../screens/bookings/booking_detail_screen.dart';
 import '../screens/checkout/checkout_screen.dart';
 import '../screens/event_detail/event_detail_screen.dart';
 import '../screens/main_shell.dart';
 import '../screens/payment/payment_screen.dart';
 import '../screens/payment/payment_success_screen.dart';
 import '../screens/splash/splash_screen.dart';
+import '../screens/tickets/ticket_detail_screen.dart';
 
 class AppRoutes {
   static final GlobalKey<NavigatorState> navigatorKey =
@@ -23,6 +25,8 @@ class AppRoutes {
   static const String checkout = '/checkout';
   static const String payment = '/payment';
   static const String paymentSuccess = '/payment-success';
+  static const String bookingDetail = '/booking-detail';
+  static const String ticketDetail = '/ticket-detail';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -89,6 +93,18 @@ class AppRoutes {
 
         return MaterialPageRoute(
           builder: (_) => PaymentSuccessScreen(booking: booking),
+          settings: settings,
+        );
+      case bookingDetail:
+        final bookingId = settings.arguments as String? ?? '';
+        return MaterialPageRoute(
+          builder: (_) => BookingDetailScreen(bookingId: bookingId),
+          settings: settings,
+        );
+      case ticketDetail:
+        final ticketId = settings.arguments as String? ?? '';
+        return MaterialPageRoute(
+          builder: (_) => TicketDetailScreen(ticketId: ticketId),
           settings: settings,
         );
       case main:

@@ -242,3 +242,10 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Alasan:** Memenuhi alur pembayaran dan idempotensi dari sisi UI tanpa menghitung nominal di client.
 - **Dampak:** `frontend/lib/services/payment_service.dart`, `frontend/lib/services/booking_service.dart`, `frontend/lib/core/utils/formatters.dart`, `frontend/lib/screens/payment`, `frontend/lib/screens/main_shell.dart`, `frontend/lib/routes/app_routes.dart`, `frontend/lib/main.dart`, `frontend/test/widget_test.dart`.
 - **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 8 tes lulus).
+
+## [2026-11-18] Fase 7 increment 7: My Tickets
+- **Konteks:** PRD 7.1 dan 7.2 meminta dua sub-tab (Tiket dan Pesanan), kartu ringkas dengan badge status, serta empty state tamu.
+- **Pilihan:** Menambahkan `EventBrief` bersama, `TicketSummary`, `TicketService.listTickets`, `BookingService.listBookings`, kartu tiket/pesanan, dan `StatusBadge`. Kedua tab memuat maksimal 50 data terbaru tanpa infinite scroll; detail Booking/Ticket masih placeholder. Tamu melihat empty state dengan tombol Masuk dan daftar dimuat ulang setelah `AuthState` berubah.
+- **Alasan:** Data MVP sedikit, sehingga satu halaman cukup; pagination UI dapat ditambahkan tanpa mengubah kontrak API.
+- **Dampak:** `frontend/lib/models/event_brief.dart`, `frontend/lib/models/ticket.dart`, `frontend/lib/models/booking.dart`, `frontend/lib/services/ticket_service.dart`, `frontend/lib/services/booking_service.dart`, `frontend/lib/widgets/status_badge.dart`, `frontend/lib/widgets/ticket_card.dart`, `frontend/lib/widgets/booking_card.dart`, `frontend/lib/screens/tickets`, `frontend/lib/screens/bookings`, `frontend/lib/routes/app_routes.dart`, `frontend/lib/main.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 8 tes lulus).
