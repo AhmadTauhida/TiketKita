@@ -123,3 +123,24 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Alasan:** Memenuhi Definition of Done Fase 2 tanpa menyentuh schema `public`.
 - **Dampak:** `src/config`, `src/middlewares`, `src/modules/auth`, `src/modules/users`, `src/utils`, `tests/`.
 - **Status:** diputuskan agent (terverifikasi: `npm test` 12 lulus).
+
+## [2026-11-18] Validasi query di Express 5
+- **Konteks:** Express 5 mendefinisikan `req.query` sebagai getter sehingga tidak dapat ditimpa hasil parsing Zod.
+- **Pilihan:** Middleware `validate(schema, 'query')` menyimpan hasil validasi ke `req.validatedQuery`; body dan params tetap ditimpa seperti biasa.
+- **Alasan:** Menghindari `TypeError: Cannot set property query` pada Express 5 tanpa mengubah konfigurasi bawaan.
+- **Dampak:** `src/middlewares/validate.js`, `src/modules/events/controller.js`.
+- **Status:** diputuskan agent.
+
+## [2026-11-18] `isSoldOut` untuk acara tanpa jenis tiket
+- **Konteks:** PRD 14.3 mendefinisikan `isSoldOut = true` bila semua jenis tiket stok 0, tetapi tidak mengatur acara tanpa jenis tiket.
+- **Pilihan:** `isSoldOut = true` hanya bila acara memiliki minimal satu jenis tiket dan semuanya `availableStock = 0`; acara tanpa jenis tiket menghasilkan `false` dan `minPrice = null`.
+- **Alasan:** Menghindari klaim "habis" pada acara yang belum memiliki data tiket, sesuai asumsi PRD 23.2 bahwa setiap acara memiliki minimal satu jenis tiket.
+- **Dampak:** `src/utils/serializer.js`.
+- **Status:** diputuskan agent.
+
+## [2026-11-18] Fase 3 selesai
+- **Konteks:** Implementasi Categories dan Events beserta tes 18.1 butir 3.
+- **Pilihan:** `GET /categories`, `GET /events` (search, filter, pagination), `GET /events/featured` (didaftarkan sebelum `/:id`), `GET /events/:id`; ID bukan UUID dijawab 404. Sweep kedaluwarsa global ditunda ke Fase 4 setelah `expireOverdueBookings` tersedia.
+- **Alasan:** Memenuhi DoD Fase 3; data seed `public` terverifikasi untuk kasus gratis, stok 3, sold out, CANCELLED, dan COMPLETED.
+- **Dampak:** `src/modules/categories`, `src/modules/events`, `src/utils/serializer.js`, `src/routes/index.js`, `tests/`.
+- **Status:** diputuskan agent (terverifikasi: `npm test` 24 lulus).

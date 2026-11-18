@@ -13,7 +13,12 @@ export function validate(schema, source = 'body') {
       return next(new ValidationError('Validasi gagal', errors));
     }
 
-    req[source] = result.data;
+    if (source === 'query') {
+      req.validatedQuery = result.data;
+    } else {
+      req[source] = result.data;
+    }
+
     return next();
   };
 }
