@@ -214,3 +214,10 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Alasan:** Memenuhi perilaku Explore tanpa menambah dependensi dan tanpa mengubah kontrak API.
 - **Dampak:** `frontend/lib/screens/explore/explore_screen.dart`, `frontend/lib/screens/main_shell.dart`.
 - **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 3 tes formatter lulus).
+
+## [2026-11-18] Fase 7 increment 3: halaman Event Detail
+- **Konteks:** PRD 7.1 dan 7.4 meminta detail acara dengan poster, informasi lengkap, stepper tiket 0-10 dibatasi stok, total, tombol "Pesan Tiket", serta label nonaktif sesuai status acara.
+- **Pilihan:** Menambahkan model `EventDetail`, `TicketType`, `BookingDraft`, widget `QuantityStepper`, dan `EventService.getEventDetail`. Total dihitung lokal hanya untuk tampilan; angka final tetap dari `POST /bookings`. Tamu yang menekan "Pesan Tiket" mendapat snackbar sampai halaman Login dibuat. Pengguna login diarahkan ke Checkout (placeholder) dengan `BookingDraft`.
+- **Alasan:** Memenuhi perilaku Event Detail tanpa mengubah kontrak API dan menyiapkan data yang dibutuhkan Checkout.
+- **Dampak:** `frontend/lib/models`, `frontend/lib/services/event_service.dart`, `frontend/lib/widgets/quantity_stepper.dart`, `frontend/lib/screens/event_detail`, `frontend/lib/screens/checkout`, `frontend/lib/routes/app_routes.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 3 tes formatter lulus).

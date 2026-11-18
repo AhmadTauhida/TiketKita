@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../models/booking_draft.dart';
+import '../screens/checkout/checkout_screen.dart';
 import '../screens/event_detail/event_detail_screen.dart';
 import '../screens/main_shell.dart';
 import '../screens/splash/splash_screen.dart';
@@ -8,6 +10,7 @@ class AppRoutes {
   static const String splash = '/';
   static const String main = '/main';
   static const String eventDetail = '/event-detail';
+  static const String checkout = '/checkout';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -20,6 +23,20 @@ class AppRoutes {
         final eventId = settings.arguments as String? ?? '';
         return MaterialPageRoute(
           builder: (_) => EventDetailScreen(eventId: eventId),
+          settings: settings,
+        );
+      case checkout:
+        final draft = settings.arguments as BookingDraft?;
+
+        if (draft == null) {
+          return MaterialPageRoute(
+            builder: (_) => const MainShell(),
+            settings: settings,
+          );
+        }
+
+        return MaterialPageRoute(
+          builder: (_) => CheckoutScreen(draft: draft),
           settings: settings,
         );
       case main:

@@ -1,6 +1,7 @@
 import '../core/network/api_client.dart';
 import '../models/api_page.dart';
 import '../models/category.dart';
+import '../models/event_detail.dart';
 import '../models/event_summary.dart';
 
 class EventService {
@@ -46,5 +47,11 @@ class EventService {
         .whereType<Map<String, dynamic>>()
         .map(Category.fromJson)
         .toList();
+  }
+
+  Future<EventDetail> getEventDetail(String eventId) async {
+    final data =
+        await _api.get('/events/$eventId') as Map<String, dynamic>;
+    return EventDetail.fromJson(data['event'] as Map<String, dynamic>);
   }
 }
