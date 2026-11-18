@@ -5,6 +5,7 @@ import morgan from 'morgan';
 
 import { env } from './config/env.js';
 import routes from './routes/index.js';
+import { notFoundHandler, errorHandler } from './middlewares/error.js';
 
 const app = express();
 
@@ -23,21 +24,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Endpoint tidak ditemukan',
-    data: null,
-  });
-});
-
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({
-    success: false,
-    message: 'Terjadi kesalahan pada server',
-    data: null,
-  });
-});
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export default app;

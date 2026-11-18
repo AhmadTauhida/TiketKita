@@ -11,6 +11,8 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 | Express | 5.3.0 |
 | Prisma CLI | 7.10.1 |
 | @prisma/client | 7.10.1 |
+| @prisma/adapter-pg | 7.10.1 |
+| pg (transitif) | 8.23.1 |
 | Zod | 4.6.7 |
 | bcryptjs | 3.0.3 |
 | jsonwebtoken | 9.0.3 |
@@ -71,4 +73,53 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Pilihan:** Fase 0 tidak membuat `.env`; hanya `.env.example` dan `.env.test.example` dengan placeholder.
 - **Alasan:** Dilarang menaruh kredensial di repositori.
 - **Dampak:** Fase 1 (schema, migration, seed) disiapkan tanpa dijalankan sampai kredensial tersedia.
-- **Status:** menunggu pemilik produk.
+- **Status:** selesai (kredensial tersedia 2026-11-18; lihat entri koneksi database).
+
+## [2026-11-18] Prisma 7: config eksternal dan driver adapter
+- **Konteks:** Prisma 7 tidak lagi mengizinkan `url` di `datasource` schema, mewajibkan `prisma7.config.ts`, dan `PrismaClient` memerlukan driver adapter. Generator baru `prisma-client` hanya menghasilkan TypeScript, sedangkan backend ini JavaScript ESM (PRD 9.5, D-27).
+- **Pilihan:** Memakai `prisma-client-js` (masih didukung di Prisma 7, output JS ke `node_modules`), `prisma7.config.ts` dengan `datasource.url = DIRECT_URL`, dan `@prisma/adapter-pg` untuk koneksi runtime.
+- **Alasan:** Menjaga backend tetap JavaScript tanpa build step TypeScript dan tetap sesuai dokumentasi versi Prisma terpasang.
+- **Dampak:** `backend/prisma7.config.ts`, `backend/prisma/schema.prisma`, `backend/package.json`, `@prisma/client`, `config/database.js` (Fase 2).
+- **Status:** diputuskan agent.
+
+## [2026-11-18] Migrasi awal tanpa shadow database
+- **Konteks:** `prisma migrate dev` membutuhkan shadow database yang belum tentu dapat dibuat pada Supabase (PRD 9.5).
+- **Pilihan:** Migration awal dibuat dengan `prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script`, ditambah migration check constraint manual, lalu diterapkan dengan `prisma migrate deploy`.
+- **Alasan:** `migrate deploy` tidak membutuhkan shadow database dan tetap tercatat di `_prisma_migrations`.
+- **Dampak:** `backend/prisma/migrations/20261118000000_init`, `20261118000100_add_check_constraints`. Perubahan skema berikutnya memakai alur yang sama atau konfigurasi `shadowDatabaseUrl` bila tersedia.
+- **Status:** diputuskan agent.
+
+## [2026-11-18] DIRECT_URL memakai session pooler
+- **Konteks:** Host direct Supabase (`db.<ref>.supabase.co`) hanya memiliki record IPv6, sedangkan jaringan pengembangan tidak memiliki rute IPv6 (koneksi `ENETUNREACH`).
+- **Pilihan:** `DIRECT_URL` memakai session pooler Supabase pada port 5432 dengan user `postgres.<ref>`; `DATABASE_URL` memakai transaction pooler port 6543 dengan `pgbouncer=true`.
+- **Alasan:** Session pooler dapat diakses lewat IPv4 dan mendukung migrasi serta transaksi.
+- **Dampak:** `.env`, `.env.test` (lokal, tidak di-commit).
+- **Status:** diputuskan agent.
+
+## [2026-11-18] Fase 1 dijalankan pada schema public
+- **Konteks:** Migration dan seed Fase 1 dijalankan pada schema `public` sesuai tujuan aplikasi. Tes otomatis tetap wajib memakai schema `test` (PRD 18.1).
+- **Pilihan:** `prisma migrate deploy` dan seed dijalankan sekali pada schema `public`; `SEED_CONFIRM=yes` dipakai saat menjalankan seed.
+- **Alasan:** Menyiapkan data demo untuk pengembangan sebelum tes otomatis dibuat.
+- **Dampak:** Database Supabase schema `public` (8 tabel + `_prisma_migrations`).
+- **Status:** diputuskan agent.
+
+## [2026-11-18] Isolasi schema test pada Prisma 7 driver adapter
+- **Konteks:** Prisma 7 memakai driver adapter, sehingga parameter `?schema=test` pada URL tidak otomatis menjadi `search_path`. Query bertipe Prisma memakai `schemaName` dari opsi adapter, tetapi raw SQL tanpa kualifikasi tetap mengarah ke `public` (PRD 18.1).
+- **Pilihan:** `config/database.js` memisahkan parameter `schema` dari URL dan meneruskannya sebagai `new PrismaPg(url, { schema })`. Setup tes menolak berjalan bila `DATABASE_URL`/`DIRECT_URL` tidak memuat `schema=test`, dan seluruh pembersihan tes memakai operasi Prisma bertipe (`deleteMany`) sehingga hanya menyentuh schema `test`.
+- **Alasan:** Menjamin tes tidak pernah membaca atau menghapus data schema `public`.
+- **Dampak:** `src/config/database.js`, `tests/load-env.js`, `tests/global-setup.js`, `tests/setup.js`. Raw SQL pada tes wajib mengualifikasikan schema secara eksplisit.
+- **Status:** diputuskan agent.
+
+## [2026-11-18] Konfigurasi Vitest
+- **Konteks:** Tes backend membutuhkan migrasi schema `test` sekali di awal dan pembersihan data antar-tes tanpa paralelisme yang dapat saling mengganggu.
+- **Pilihan:** `vitest.config.js` memakai `globalSetup` untuk `prisma migrate deploy` dengan `PRISMA_ENV_FILE=.env.test`, `setupFiles` untuk memuat `.env.test` dan truncate, serta `fileParallelism: false`.
+- **Alasan:** Menghindari race condition antar berkas tes dan memastikan environment tes konsisten.
+- **Dampak:** `backend/vitest.config.js`, `backend/tests/`.
+- **Status:** diputuskan agent.
+
+## [2026-11-18] Fase 2 selesai
+- **Konteks:** Implementasi fondasi backend, Auth, dan Users beserta tes 18.1 butir 1 dan 2.
+- **Pilihan:** Envelope respons dan status code mengikuti PRD 14; pesan error Bahasa Indonesia sesuai PRD 16; 12 tes Vitest dijalankan pada schema `test`.
+- **Alasan:** Memenuhi Definition of Done Fase 2 tanpa menyentuh schema `public`.
+- **Dampak:** `src/config`, `src/middlewares`, `src/modules/auth`, `src/modules/users`, `src/utils`, `tests/`.
+- **Status:** diputuskan agent (terverifikasi: `npm test` 12 lulus).
