@@ -261,5 +261,5 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Konteks:** PRD 7.1, FR-04, FR-05, FR-21, dan FR-22 meminta profil, edit profil, About, dan logout.
 - **Pilihan:** Profil menampilkan avatar (URL atau inisial), nama, email, telepon, serta menu Edit Profil/About/Logout dengan dialog konfirmasi. Logout membersihkan token dan kembali ke MainShell sebagai tamu. Edit Profil memakai `PUT /users/profile`; email read-only dan URL foto opsional dengan validasi http/https. About menampilkan nama, versi, deskripsi, platform, dan konteks; identitas pengembang diisi "Tim TiketKita" dan dapat diganti pemilik produk.
 - **Alasan:** Menutup seluruh layar Fase 7 tanpa menambah dependensi.
-- **Dampak:** `frontend/lib/core/utils/validators.dart`, `frontend/lib/services/auth_service.dart`, `frontend/lib/state/auth_state.dart`, `frontend/lib/widgets/user_avatar.dart`, `frontend/lib/screens/profile`, `frontend/lib/routes/app_routes.dart`, `frontend/test/validators_test.dart`.
-- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 9 tes lulus).
+- **Dampak:** `frontend/lib/core/utils/validators.dart`, `frontend/lib/services/auth_service.dart`, `frontend/lib/state/auth_state.dart`, `frontend/lib/widgets/user_avatar.dart`, `frontend/lib/screens/profile`, `frontend/lib/routes/app_routes.dart`, `frontend/test/validators_test.dart`, `frontend/test/navigation_test.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 10 tes lulus, termasuk widget test Bottom Navigation Bar).
