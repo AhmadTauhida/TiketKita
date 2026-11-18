@@ -50,4 +50,12 @@ class BookingService {
 
     return ApiPage.fromJson(data, Booking.fromJson);
   }
+
+  Future<Booking> cancelBooking(String bookingId) async {
+    final data = await _api.patch(
+      '/bookings/$bookingId/cancel',
+    ) as Map<String, dynamic>;
+
+    return Booking.fromJson(data['booking'] as Map<String, dynamic>);
+  }
 }

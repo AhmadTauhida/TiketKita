@@ -1,6 +1,7 @@
 import '../core/network/api_client.dart';
 import '../models/api_page.dart';
 import '../models/ticket.dart';
+import '../models/ticket_detail.dart';
 
 class TicketService {
   TicketService(this._api);
@@ -22,5 +23,12 @@ class TicketService {
         await _api.get('/tickets', query: query) as Map<String, dynamic>;
 
     return ApiPage.fromJson(data, TicketSummary.fromJson);
+  }
+
+  Future<TicketDetail> getTicket(String ticketId) async {
+    final data =
+        await _api.get('/tickets/$ticketId') as Map<String, dynamic>;
+
+    return TicketDetail.fromJson(data['ticket'] as Map<String, dynamic>);
   }
 }

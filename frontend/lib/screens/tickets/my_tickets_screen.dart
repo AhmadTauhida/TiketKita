@@ -297,10 +297,18 @@ class _OrdersTabState extends State<_OrdersTab> {
 
           return BookingCard(
             booking: booking,
-            onTap: () => Navigator.of(context).pushNamed(
-              AppRoutes.bookingDetail,
-              arguments: booking.id,
-            ),
+            onTap: () async {
+              final changed = await Navigator.of(context).pushNamed(
+                AppRoutes.bookingDetail,
+                arguments: booking.id,
+              );
+
+              if (!mounted || changed != true) {
+                return;
+              }
+
+              await _load();
+            },
           );
         },
       ),

@@ -249,3 +249,10 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Alasan:** Data MVP sedikit, sehingga satu halaman cukup; pagination UI dapat ditambahkan tanpa mengubah kontrak API.
 - **Dampak:** `frontend/lib/models/event_brief.dart`, `frontend/lib/models/ticket.dart`, `frontend/lib/models/booking.dart`, `frontend/lib/services/ticket_service.dart`, `frontend/lib/services/booking_service.dart`, `frontend/lib/widgets/status_badge.dart`, `frontend/lib/widgets/ticket_card.dart`, `frontend/lib/widgets/booking_card.dart`, `frontend/lib/screens/tickets`, `frontend/lib/screens/bookings`, `frontend/lib/routes/app_routes.dart`, `frontend/lib/main.dart`.
 - **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 8 tes lulus).
+
+## [2026-11-18] Fase 7 increment 8: Booking Detail dan Ticket Detail
+- **Konteks:** PRD 7.1, 7.3, 7.4, FR-18, dan FR-19 meminta detail pesanan dengan aksi sesuai status, serta detail tiket dengan QR Code.
+- **Pilihan:** Booking Detail memuat ulang `GET /bookings/:id`, menampilkan hitung mundur untuk PENDING, aksi "Bayar Sekarang"/"Batalkan Pemesanan" dengan dialog, dan "Lihat Tiket" untuk PAID. Pembatalan sukses mengembalikan pengguna ke daftar Pesanan dan memuat ulang daftar. Ticket Detail memakai `GET /tickets/:id` dan `QrImageView` berisi `qrToken` (220 dp, latar putih). `BookingService.cancelBooking` dan `TicketService.getTicket` ditambahkan.
+- **Alasan:** Menutup alur utama MVP (pesan → bayar → tiket + QR → batal) sesuai PRD tanpa dependensi baru.
+- **Dampak:** `frontend/lib/models/ticket_detail.dart`, `frontend/lib/services/booking_service.dart`, `frontend/lib/services/ticket_service.dart`, `frontend/lib/screens/bookings/booking_detail_screen.dart`, `frontend/lib/screens/tickets/ticket_detail_screen.dart`, `frontend/lib/screens/tickets/my_tickets_screen.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 8 tes lulus).
