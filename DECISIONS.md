@@ -200,3 +200,10 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Alasan:** Memenuhi DoD Fase 6 dan PRD 19 tanpa menambah dependensi atau mengubah kontrak API.
 - **Dampak:** `backend/vercel.json`, `backend/postman/`, `backend/README.md`.
 - **Status:** diputuskan agent (terverifikasi: `npm test` 58 lulus; smoke test `GET /health`, `GET /`, `GET /api/v1/categories` merespons 200).
+
+## [2026-11-18] Fase 7 increment 1: fondasi Flutter dan Home
+- **Konteks:** Frontend baru memiliki tema dan bootstrap; Home (PRD 7.1) membutuhkan ApiClient, model, service, sesi autentikasi, routing, dan MainShell.
+- **Pilihan:** `ApiClient` terpusat dengan token dari secure storage dan penanganan 401; `AuthState` sebagai provider sesi; MainShell dengan Bottom Navigation dan placeholder Explore/My Tickets/Profile; tab privat menampilkan snackbar sampai halaman Login tersedia; Home memuat featured, kategori, dan acara terdekat secara paralel dengan loading, error + "Coba Lagi", empty state, dan pull-to-refresh; kartu acara membuka placeholder Event Detail.
+- **Alasan:** Memenuhi tampilan dan perilaku Home tanpa mendahului halaman lain, sekaligus menyiapkan fondasi yang dipakai seluruh Fase 7.
+- **Dampak:** `frontend/lib/core`, `models`, `services`, `state`, `routes`, `screens`, `widgets`, `main.dart`, `test/widget_test.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 3 tes formatter lulus).

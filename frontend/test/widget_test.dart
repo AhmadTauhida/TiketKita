@@ -1,14 +1,29 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tiketkita/main.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:tiketkita/core/utils/formatters.dart';
 
 void main() {
-  testWidgets('shows the TiketKita brand', (WidgetTester tester) async {
-    await tester.pumpWidget(const TiketKitaApp());
+  setUpAll(() async {
+    await initializeDateFormatting('id_ID');
+  });
 
-    expect(find.text('TiketKita'), findsOneWidget);
+  test('formatRupiah memakai pemisah ribuan Indonesia', () {
+    expect(formatRupiah(150000), 'Rp 150.000');
+  });
+
+  test('formatPriceLabel menangani gratis, habis, dan minimal', () {
+    expect(formatPriceLabel(0, isSoldOut: false), 'Gratis');
+    expect(formatPriceLabel(50000, isSoldOut: true), 'Habis');
     expect(
-      find.text('Temukan Acara, Pesan Tiket, Nikmati Momen'),
-      findsOneWidget,
+      formatPriceLabel(50000, isSoldOut: false),
+      'Mulai dari Rp 50.000',
+    );
+  });
+
+  test('formatEventDate dikonversi ke WIB', () {
+    expect(
+      formatEventDate(DateTime.utc(2026, 12, 12, 3)),
+      'Sab, 12 Des 2026 • 10.00 WIB',
     );
   });
 }
