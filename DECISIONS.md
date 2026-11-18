@@ -186,3 +186,17 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Alasan:** Memenuhi DoD Fase 5 tanpa mengubah skema database atau menyentuh schema `public`.
 - **Dampak:** `src/modules/payments`, `src/modules/tickets`, `src/utils/generate-code.js`, `src/utils/serializer.js`, `src/modules/bookings/service.js`, `src/routes/index.js`, `tests/payments.test.js`, `tests/tickets.test.js`.
 - **Status:** diputuskan agent (terverifikasi: `npm test` 58 lulus, termasuk pembayaran paralel dan isolasi data).
+
+## [2026-11-18] Cakupan `baseUrl` Postman
+- **Konteks:** PRD 19.2 mewajibkan environment `baseUrl` dan `token`, serta folder `0. Health`. Endpoint `/health` dan `/` berada di luar `/api/v1` (PRD 10.6).
+- **Pilihan:** `baseUrl` berisi origin (`http://localhost:3000` atau domain Vercel) tanpa `/api/v1`; request API menuliskan path `/api/v1/...` lengkap. ID dinamis (`eventId`, `ticketTypeId`, `bookingId`, `ticketId`) disimpan sebagai collection variable, bukan environment variable.
+- **Alasan:** Satu environment dapat dipakai untuk health check sekaligus API, dan file environment tetap hanya memuat variabel yang diwajibkan PRD.
+- **Dampak:** `backend/postman/`, `backend/README.md`.
+- **Status:** diputuskan agent.
+
+## [2026-11-18] Fase 6 selesai
+- **Konteks:** Penutupan backend: koleksi Postman, konfigurasi Vercel, README, dan verifikasi seluruh tes wajib.
+- **Pilihan:** Koleksi berisi 18 request pada 8 folder dengan satu contoh respons per request; Login menyimpan `token` otomatis; environment Local dan Vercel disediakan. `vercel.json` mengikuti PRD 19.1. README backend mencakup setup, env, migrasi, seed, tes, Postman, dan deployment.
+- **Alasan:** Memenuhi DoD Fase 6 dan PRD 19 tanpa menambah dependensi atau mengubah kontrak API.
+- **Dampak:** `backend/vercel.json`, `backend/postman/`, `backend/README.md`.
+- **Status:** diputuskan agent (terverifikasi: `npm test` 58 lulus; smoke test `GET /health`, `GET /`, `GET /api/v1/categories` merespons 200).
