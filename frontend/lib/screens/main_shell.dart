@@ -15,10 +15,26 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
+  final FocusNode _exploreSearchFocus = FocusNode();
   int _index = 0;
+
+  @override
+  void dispose() {
+    _exploreSearchFocus.dispose();
+    super.dispose();
+  }
 
   void _selectTab(int index) {
     setState(() => _index = index);
+  }
+
+  void _openExploreSearch() {
+    _selectTab(1);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _exploreSearchFocus.requestFocus();
+      }
+    });
   }
 
   void _onDestinationSelected(int index) {
@@ -43,8 +59,8 @@ class _MainShellState extends State<MainShell> {
       body: IndexedStack(
         index: _index,
         children: [
-          HomeScreen(onSearchTap: () => _selectTab(1)),
-          const ExploreScreen(),
+          HomeScreen(onSearchTap: _openExploreSearch),
+          ExploreScreen(searchFocusNode: _exploreSearchFocus),
           const MyTicketsScreen(),
           const ProfileScreen(),
         ],

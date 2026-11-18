@@ -207,3 +207,10 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Alasan:** Memenuhi tampilan dan perilaku Home tanpa mendahului halaman lain, sekaligus menyiapkan fondasi yang dipakai seluruh Fase 7.
 - **Dampak:** `frontend/lib/core`, `models`, `services`, `state`, `routes`, `screens`, `widgets`, `main.dart`, `test/widget_test.dart`.
 - **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 3 tes formatter lulus).
+
+## [2026-11-18] Fase 7 increment 2: halaman Explore
+- **Konteks:** PRD 7.1 meminta Explore dengan search bar (debounce 400 ms), chip kategori termasuk "Semua", daftar acara dengan infinite scroll, dan empty state.
+- **Pilihan:** `ExploreScreen` memuat kategori sekali dan daftar acara per halaman (`limit=10`); pencarian dan perubahan kategori mereset daftar; `_requestId` membuang respons lama; pagination dipicu `extentAfter < 300`; error pagination ditampilkan lewat snackbar; FocusNode dimiliki MainShell agar pencarian dari Home langsung fokus ke kolom Explore.
+- **Alasan:** Memenuhi perilaku Explore tanpa menambah dependensi dan tanpa mengubah kontrak API.
+- **Dampak:** `frontend/lib/screens/explore/explore_screen.dart`, `frontend/lib/screens/main_shell.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 3 tes formatter lulus).
