@@ -8,6 +8,7 @@ import '../screens/checkout/checkout_screen.dart';
 import '../screens/event_detail/event_detail_screen.dart';
 import '../screens/main_shell.dart';
 import '../screens/payment/payment_screen.dart';
+import '../screens/payment/payment_success_screen.dart';
 import '../screens/splash/splash_screen.dart';
 
 class AppRoutes {
@@ -21,6 +22,7 @@ class AppRoutes {
   static const String eventDetail = '/event-detail';
   static const String checkout = '/checkout';
   static const String payment = '/payment';
+  static const String paymentSuccess = '/payment-success';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -75,10 +77,27 @@ class AppRoutes {
           builder: (_) => PaymentScreen(booking: booking),
           settings: settings,
         );
+      case paymentSuccess:
+        final booking = settings.arguments as Booking?;
+
+        if (booking == null) {
+          return MaterialPageRoute(
+            builder: (_) => const MainShell(),
+            settings: settings,
+          );
+        }
+
+        return MaterialPageRoute(
+          builder: (_) => PaymentSuccessScreen(booking: booking),
+          settings: settings,
+        );
       case main:
       default:
+        final initialTab =
+            settings.arguments is int ? settings.arguments as int : 0;
+
         return MaterialPageRoute(
-          builder: (_) => const MainShell(),
+          builder: (_) => MainShell(initialTab: initialTab),
           settings: settings,
         );
     }

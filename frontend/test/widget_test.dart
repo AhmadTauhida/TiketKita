@@ -26,4 +26,10 @@ void main() {
       'Sab, 12 Des 2026 • 10.00 WIB',
     );
   });
+
+  test('formatCountdown menampilkan mm:ss', () {
+    expect(formatCountdown(const Duration(minutes: 15)), '15:00');
+    expect(formatCountdown(const Duration(seconds: 65)), '01:05');
+    expect(formatCountdown(const Duration(seconds: -1)), '00:00');
+  });
 }

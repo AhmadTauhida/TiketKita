@@ -25,4 +25,11 @@ class BookingService {
 
     return Booking.fromJson(data['booking'] as Map<String, dynamic>);
   }
+
+  Future<Booking> getBooking(String bookingId) async {
+    final data =
+        await _api.get('/bookings/$bookingId') as Map<String, dynamic>;
+
+    return Booking.fromJson(data['booking'] as Map<String, dynamic>);
+  }
 }

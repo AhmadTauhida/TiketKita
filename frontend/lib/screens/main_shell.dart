@@ -9,7 +9,9 @@ import 'profile/profile_screen.dart';
 import 'tickets/my_tickets_screen.dart';
 
 class MainShell extends StatefulWidget {
-  const MainShell({super.key});
+  const MainShell({super.key, this.initialTab = 0});
+
+  final int initialTab;
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -17,7 +19,7 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   final FocusNode _exploreSearchFocus = FocusNode();
-  int _index = 0;
+  late int _index = widget.initialTab.clamp(0, 3);
 
   @override
   void dispose() {

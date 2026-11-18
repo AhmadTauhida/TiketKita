@@ -235,3 +235,10 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Alasan:** Memenuhi alur Checkout tanpa menghitung ulang harga di client dan menyiapkan data untuk Payment.
 - **Dampak:** `frontend/lib/models/booking.dart`, `frontend/lib/models/payment.dart`, `frontend/lib/services/booking_service.dart`, `frontend/lib/screens/checkout/checkout_screen.dart`, `frontend/lib/screens/payment/payment_screen.dart`, `frontend/lib/routes/app_routes.dart`, `frontend/lib/main.dart`.
 - **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 7 tes lulus).
+
+## [2026-11-18] Fase 7 increment 6: Payment dan Payment Success
+- **Konteks:** PRD 7.1, 7.3, 7.4, dan 13.4 meminta hitung mundur 15 menit, pilihan metode, pembayaran simulasi, penanganan 409, serta layar sukses dengan aksi ke tiket/beranda.
+- **Pilihan:** Menambahkan `PaymentService`, `BookingService.getBooking`, dan `formatCountdown`. Metode default `BANK_TRANSFER`. Saat countdown habis, booking dimuat ulang dari server agar status `EXPIRED` ditentukan backend. 409 "Pemesanan sudah dibayar" memuat ulang booking lalu langsung ke Payment Success. Payment Success mengarah ke MainShell tab My Tickets (`arguments: 2`) atau tab Home (`arguments: 0`).
+- **Alasan:** Memenuhi alur pembayaran dan idempotensi dari sisi UI tanpa menghitung nominal di client.
+- **Dampak:** `frontend/lib/services/payment_service.dart`, `frontend/lib/services/booking_service.dart`, `frontend/lib/core/utils/formatters.dart`, `frontend/lib/screens/payment`, `frontend/lib/screens/main_shell.dart`, `frontend/lib/routes/app_routes.dart`, `frontend/lib/main.dart`, `frontend/test/widget_test.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 8 tes lulus).

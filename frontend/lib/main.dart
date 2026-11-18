@@ -11,6 +11,7 @@ import 'routes/app_routes.dart';
 import 'services/auth_service.dart';
 import 'services/booking_service.dart';
 import 'services/event_service.dart';
+import 'services/payment_service.dart';
 import 'state/auth_state.dart';
 
 Future<void> main() async {
@@ -26,6 +27,7 @@ Future<void> main() async {
   final authService = AuthService(apiClient);
   final eventService = EventService(apiClient);
   final bookingService = BookingService(apiClient);
+  final paymentService = PaymentService(apiClient);
 
   runApp(
     TiketKitaApp(
@@ -34,6 +36,7 @@ Future<void> main() async {
       authService: authService,
       eventService: eventService,
       bookingService: bookingService,
+      paymentService: paymentService,
     ),
   );
 }
@@ -46,6 +49,7 @@ class TiketKitaApp extends StatelessWidget {
     required this.authService,
     required this.eventService,
     required this.bookingService,
+    required this.paymentService,
   });
 
   final TokenStorage tokenStorage;
@@ -53,6 +57,7 @@ class TiketKitaApp extends StatelessWidget {
   final AuthService authService;
   final EventService eventService;
   final BookingService bookingService;
+  final PaymentService paymentService;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +66,7 @@ class TiketKitaApp extends StatelessWidget {
         Provider<ApiClient>.value(value: apiClient),
         Provider<EventService>.value(value: eventService),
         Provider<BookingService>.value(value: bookingService),
+        Provider<PaymentService>.value(value: paymentService),
         ChangeNotifierProvider<AuthState>(
           create: (_) => AuthState(
             authService,
