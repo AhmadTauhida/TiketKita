@@ -228,3 +228,10 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Alasan:** Memenuhi alur autentikasi PRD tanpa menambah dependensi dan tanpa mengubah kontrak API.
 - **Dampak:** `frontend/lib/core/utils/validators.dart`, `frontend/lib/models/auth_session.dart`, `frontend/lib/services/auth_service.dart`, `frontend/lib/state/auth_state.dart`, `frontend/lib/screens/auth`, `frontend/lib/routes/app_routes.dart`, `frontend/lib/main.dart`, `frontend/lib/screens/main_shell.dart`, `frontend/lib/screens/event_detail/event_detail_screen.dart`, `frontend/test/validators_test.dart`.
 - **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 7 tes lulus).
+
+## [2026-11-18] Fase 7 increment 5: halaman Checkout
+- **Konteks:** PRD 7.1 dan 7.4 meminta ringkasan acara, rincian tiket, total, tombol "Lanjutkan", lalu `POST /bookings` dan Checkout diganti Payment.
+- **Pilihan:** Menambahkan model `Booking`, `Payment`, dan `BookingService.createBooking`; total Checkout hanya pratinjau dari `BookingDraft`. Setelah booking sukses, `pushReplacementNamed` membawa `Booking` hasil server ke Payment (placeholder). Payment nanti memakai `booking.totalAmount` sebagai nominal.
+- **Alasan:** Memenuhi alur Checkout tanpa menghitung ulang harga di client dan menyiapkan data untuk Payment.
+- **Dampak:** `frontend/lib/models/booking.dart`, `frontend/lib/models/payment.dart`, `frontend/lib/services/booking_service.dart`, `frontend/lib/screens/checkout/checkout_screen.dart`, `frontend/lib/screens/payment/payment_screen.dart`, `frontend/lib/routes/app_routes.dart`, `frontend/lib/main.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 7 tes lulus).

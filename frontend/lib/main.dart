@@ -9,6 +9,7 @@ import 'core/storage/token_storage.dart';
 import 'core/theme/app_theme.dart';
 import 'routes/app_routes.dart';
 import 'services/auth_service.dart';
+import 'services/booking_service.dart';
 import 'services/event_service.dart';
 import 'state/auth_state.dart';
 
@@ -24,6 +25,7 @@ Future<void> main() async {
   );
   final authService = AuthService(apiClient);
   final eventService = EventService(apiClient);
+  final bookingService = BookingService(apiClient);
 
   runApp(
     TiketKitaApp(
@@ -31,6 +33,7 @@ Future<void> main() async {
       apiClient: apiClient,
       authService: authService,
       eventService: eventService,
+      bookingService: bookingService,
     ),
   );
 }
@@ -42,12 +45,14 @@ class TiketKitaApp extends StatelessWidget {
     required this.apiClient,
     required this.authService,
     required this.eventService,
+    required this.bookingService,
   });
 
   final TokenStorage tokenStorage;
   final ApiClient apiClient;
   final AuthService authService;
   final EventService eventService;
+  final BookingService bookingService;
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +60,7 @@ class TiketKitaApp extends StatelessWidget {
       providers: [
         Provider<ApiClient>.value(value: apiClient),
         Provider<EventService>.value(value: eventService),
+        Provider<BookingService>.value(value: bookingService),
         ChangeNotifierProvider<AuthState>(
           create: (_) => AuthState(
             authService,
