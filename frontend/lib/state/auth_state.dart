@@ -7,16 +7,23 @@ import '../models/user.dart';
 import '../services/auth_service.dart';
 
 class AuthState extends ChangeNotifier {
-  AuthState(this._authService, this._tokenStorage, this._apiClient) {
+  AuthState(
+    this._authService,
+    this._tokenStorage,
+    this._apiClient, [
+    this._onSessionExpired,
+  ]) {
     _apiClient.onUnauthorized = _handleUnauthorized;
   }
 
   final AuthService _authService;
   final TokenStorage _tokenStorage;
   final ApiClient _apiClient;
+  final void Function()? _onSessionExpired;
 
   User? _user;
   bool _initializing = true;
+  bool _redirectingToLogin = false;
 
   User? get user => _user;
   bool get isLoggedIn => _user != null;
@@ -44,10 +51,45 @@ class AuthState extends ChangeNotifier {
     }
   }
 
+  Future<void> login({required String email, required String password}) async {
+    final session = await _authService.login(
+      email: email,
+      password: password,
+    );
+
+    await _tokenStorage.saveToken(session.token);
+    _user = session.user;
+    _redirectingToLogin = false;
+    notifyListeners();
+  }
+
+  Future<void> register({
+    required String name,
+    required String email,
+    required String phone,
+    required String password,
+  }) async {
+    await _authService.register(
+      name: name,
+      email: email,
+      phone: phone,
+      password: password,
+    );
+
+    await login(email: email, password: password);
+  }
+
   Future<void> _handleUnauthorized() async {
     await _tokenStorage.clearToken();
     _user = null;
     notifyListeners();
+
+    if (_initializing || _redirectingToLogin) {
+      return;
+    }
+
+    _redirectingToLogin = true;
+    _onSessionExpired?.call();
   }
 
   Future<void> logout() async {

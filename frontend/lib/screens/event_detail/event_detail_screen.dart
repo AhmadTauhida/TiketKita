@@ -105,7 +105,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     }
   }
 
-  void _proceed() {
+  Future<void> _proceed() async {
     final event = _event;
 
     if (event == null || _totalQuantity == 0) {
@@ -113,14 +113,26 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     }
 
     if (!context.read<AuthState>().isLoggedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Silakan masuk terlebih dahulu untuk memesan tiket.'),
-        ),
-      );
+      final result = await Navigator.of(context).pushNamed(AppRoutes.login);
+
+      if (!mounted || result != true) {
+        return;
+      }
+
+      final currentEvent = _event;
+
+      if (currentEvent == null || _totalQuantity == 0) {
+        return;
+      }
+
+      _openCheckout(currentEvent);
       return;
     }
 
+    _openCheckout(event);
+  }
+
+  void _openCheckout(EventDetail event) {
     Navigator.of(context).pushNamed(
       AppRoutes.checkout,
       arguments: BookingDraft(

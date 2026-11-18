@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../models/booking_draft.dart';
+import '../screens/auth/login_screen.dart';
+import '../screens/auth/register_screen.dart';
 import '../screens/checkout/checkout_screen.dart';
 import '../screens/event_detail/event_detail_screen.dart';
 import '../screens/main_shell.dart';
 import '../screens/splash/splash_screen.dart';
 
 class AppRoutes {
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+
   static const String splash = '/';
   static const String main = '/main';
+  static const String login = '/login';
+  static const String register = '/register';
   static const String eventDetail = '/event-detail';
   static const String checkout = '/checkout';
 
@@ -17,6 +24,18 @@ class AppRoutes {
       case splash:
         return MaterialPageRoute(
           builder: (_) => const SplashScreen(),
+          settings: settings,
+        );
+      case login:
+        return MaterialPageRoute(
+          builder: (_) => LoginScreen(
+            sessionExpired: settings.arguments == true,
+          ),
+          settings: settings,
+        );
+      case register:
+        return MaterialPageRoute(
+          builder: (_) => const RegisterScreen(),
           settings: settings,
         );
       case eventDetail:

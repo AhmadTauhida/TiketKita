@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../routes/app_routes.dart';
 import '../state/auth_state.dart';
 import 'explore/explore_screen.dart';
 import 'home/home_screen.dart';
@@ -37,16 +38,17 @@ class _MainShellState extends State<MainShell> {
     });
   }
 
-  void _onDestinationSelected(int index) {
+  Future<void> _onDestinationSelected(int index) async {
     final needsLogin = index == 2 || index == 3;
 
     if (needsLogin && !context.read<AuthState>().isLoggedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:
-              Text('Silakan masuk terlebih dahulu untuk membuka halaman ini.'),
-        ),
-      );
+      final result = await Navigator.of(context).pushNamed(AppRoutes.login);
+
+      if (!mounted || result != true) {
+        return;
+      }
+
+      _selectTab(index);
       return;
     }
 

@@ -56,13 +56,25 @@ class TiketKitaApp extends StatelessWidget {
         Provider<ApiClient>.value(value: apiClient),
         Provider<EventService>.value(value: eventService),
         ChangeNotifierProvider<AuthState>(
-          create: (_) => AuthState(authService, tokenStorage, apiClient),
+          create: (_) => AuthState(
+            authService,
+            tokenStorage,
+            apiClient,
+            () {
+              AppRoutes.navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                AppRoutes.login,
+                (_) => false,
+                arguments: true,
+              );
+            },
+          ),
         ),
       ],
       child: MaterialApp(
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
+        navigatorKey: AppRoutes.navigatorKey,
         initialRoute: AppRoutes.splash,
         onGenerateRoute: AppRoutes.onGenerateRoute,
       ),

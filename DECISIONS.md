@@ -221,3 +221,10 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Alasan:** Memenuhi perilaku Event Detail tanpa mengubah kontrak API dan menyiapkan data yang dibutuhkan Checkout.
 - **Dampak:** `frontend/lib/models`, `frontend/lib/services/event_service.dart`, `frontend/lib/widgets/quantity_stepper.dart`, `frontend/lib/screens/event_detail`, `frontend/lib/screens/checkout`, `frontend/lib/routes/app_routes.dart`.
 - **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 3 tes formatter lulus).
+
+## [2026-11-18] Fase 7 increment 4: Auth (Login dan Register)
+- **Konteks:** PRD 7.1, 7.4, dan D-03/D-08 meminta Login, Register, auto-login setelah register, permintaan login saat memesan atau membuka tab privat, serta penanganan 401.
+- **Pilihan:** Menambahkan validasi klien bersama, `AuthSession`, `AuthService.login/register`, dan `AuthState.login/register`. Login/Register memakai hasil `Navigator.pop(true)` sebagai pengganti `redirectTo` agar layar pemanggil dapat melanjutkan alur. Event Detail langsung membuka Checkout setelah login tanpa kehilangan pilihan jumlah. Tab My Tickets/Profile membuka Login lalu berpindah tab bila berhasil. 401 global memakai `AppRoutes.navigatorKey` untuk membersihkan stack dan membuka Login dengan pesan sesi berakhir.
+- **Alasan:** Memenuhi alur autentikasi PRD tanpa menambah dependensi dan tanpa mengubah kontrak API.
+- **Dampak:** `frontend/lib/core/utils/validators.dart`, `frontend/lib/models/auth_session.dart`, `frontend/lib/services/auth_service.dart`, `frontend/lib/state/auth_state.dart`, `frontend/lib/screens/auth`, `frontend/lib/routes/app_routes.dart`, `frontend/lib/main.dart`, `frontend/lib/screens/main_shell.dart`, `frontend/lib/screens/event_detail/event_detail_screen.dart`, `frontend/test/validators_test.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 7 tes lulus).
