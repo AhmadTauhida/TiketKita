@@ -9,7 +9,7 @@ import { generateBookingCode } from '../../utils/generate-code.js';
 
 const uuidSchema = z.uuid();
 
-const bookingInclude = {
+export const bookingInclude = {
   details: {
     include: {
       ticketType: {

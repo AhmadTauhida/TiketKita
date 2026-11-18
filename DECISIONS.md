@@ -165,3 +165,24 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Alasan:** Memenuhi DoD Fase 4 tanpa menyentuh schema `public`.
 - **Dampak:** `src/modules/bookings`, `src/utils/expire-bookings.js`, `src/utils/generate-code.js`, `src/utils/serializer.js`, `tests/bookings.test.js`.
 - **Status:** diputuskan agent (terverifikasi: `npm test` 39 lulus; uji konkurensi 5 request pada stok 3 menghasilkan 3 sukses dan 2 gagal 409).
+
+## [2026-11-18] Komit sweep kedaluwarsa saat pembayaran ditolak
+- **Konteks:** PRD 13.4 menjalankan sweep kedaluwarsa di dalam transaksi pembayaran, lalu menjawab 409 bila booking sudah EXPIRED. Melempar error dari dalam `$transaction` akan me-rollback transisi EXPIRED dan pengembalian stok.
+- **Pilihan:** Setelah sweep, bila status booking bukan PENDING, transaksi mengembalikan penanda `{ conflict: status }` sehingga perubahan sweep ter-commit; controller/service melempar `ConflictError` sesuai PRD 16 setelah transaksi selesai.
+- **Alasan:** Status EXPIRED dan stok yang dikembalikan tetap tersimpan, sementara respons tetap 409.
+- **Dampak:** `src/modules/payments/service.js`, `tests/payments.test.js`.
+- **Status:** diputuskan agent.
+
+## [2026-11-18] Idempotensi pembayaran paralel
+- **Konteks:** Dua request `POST /payments/:bookingId` paralel dapat menabrak unique `payments.booking_id` atau lolos pemeriksaan status secara bersamaan.
+- **Pilihan:** Penjaga utama tetap `updateMany` dengan syarat `status = 'PENDING'`. Pelanggaran `P2002` ditangani dengan membaca ulang status booking: bila sudah PAID dijawab 409 "Pemesanan sudah dibayar"; bila belum, transaksi diulang maksimal 5 kali untuk tabrakan kode tiket/referensi transaksi.
+- **Alasan:** Menghasilkan tepat satu pembayaran sukses tanpa menggandakan tiket, termasuk saat metadata target `P2002` tidak tersedia dari driver adapter.
+- **Dampak:** `src/modules/payments/service.js`, `tests/payments.test.js`.
+- **Status:** diputuskan agent.
+
+## [2026-11-18] Fase 5 selesai
+- **Konteks:** Implementasi Payments dan Tickets beserta tes 18.1 butir 6 dan 9.
+- **Pilihan:** `POST/GET /payments/:bookingId`, `GET /tickets`, `GET /tickets/:id`; kepemilikan payment dicek lewat booking dan tiket lewat `ticket → bookingDetail → booking.userId`; `ticketCount` = jumlah baris tiket yang diterbitkan; `bookingInclude` diekspor dari modul bookings agar bentuk respons booking konsisten.
+- **Alasan:** Memenuhi DoD Fase 5 tanpa mengubah skema database atau menyentuh schema `public`.
+- **Dampak:** `src/modules/payments`, `src/modules/tickets`, `src/utils/generate-code.js`, `src/utils/serializer.js`, `src/modules/bookings/service.js`, `src/routes/index.js`, `tests/payments.test.js`, `tests/tickets.test.js`.
+- **Status:** diputuskan agent (terverifikasi: `npm test` 58 lulus, termasuk pembayaran paralel dan isolasi data).
