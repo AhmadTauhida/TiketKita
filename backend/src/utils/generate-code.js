@@ -1,4 +1,4 @@
-import { randomInt } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -18,4 +18,16 @@ export function generateBookingCode(date = new Date()) {
   const day = String(date.getUTCDate()).padStart(2, '0');
 
   return `TK-${year}${month}${day}-${randomCode(6)}`;
+}
+
+export function generateTicketCode() {
+  return `TKT-${randomCode(10)}`;
+}
+
+export function generateTransactionReference() {
+  return `SIM-${randomCode(12)}`;
+}
+
+export function generateQrToken() {
+  return randomBytes(32).toString('hex');
 }

@@ -4,6 +4,8 @@ import authRoutes from '../modules/auth/routes.js';
 import bookingRoutes from '../modules/bookings/routes.js';
 import categoryRoutes from '../modules/categories/routes.js';
 import eventRoutes from '../modules/events/routes.js';
+import paymentRoutes from '../modules/payments/routes.js';
+import ticketRoutes from '../modules/tickets/routes.js';
 import userRoutes from '../modules/users/routes.js';
 
 const router = Router();
@@ -13,5 +15,7 @@ router.use('/users', userRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/events', eventRoutes);
 router.use('/bookings', bookingRoutes);
+router.use('/payments', paymentRoutes);
+router.use('/tickets', ticketRoutes);
 
 export default router;

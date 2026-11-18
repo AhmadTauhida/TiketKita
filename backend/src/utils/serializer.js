@@ -122,3 +122,40 @@ export function serializeBooking(booking) {
     payment: booking.payment ? serializePayment(booking.payment) : null,
   };
 }
+
+export function serializeTicketSummary(ticket) {
+  const { ticketType, booking } = ticket.bookingDetail;
+  const event = ticketType.event;
+
+  return {
+    id: ticket.id,
+    ticketCode: ticket.ticketCode,
+    status: ticket.status,
+    issuedAt: toIsoString(ticket.issuedAt),
+    ticketTypeName: ticketType.name,
+    bookingCode: booking.bookingCode,
+    event: {
+      id: event.id,
+      title: event.title,
+      imageUrl: event.imageUrl,
+      eventDate: toIsoString(event.eventDate),
+      location: event.location,
+    },
+  };
+}
+
+export function serializeTicketDetail(ticket) {
+  const event = ticket.bookingDetail.ticketType.event;
+  const summary = serializeTicketSummary(ticket);
+
+  return {
+    ...summary,
+    qrToken: ticket.qrToken,
+    ownerName: ticket.bookingDetail.booking.user.name,
+    usedAt: toIsoString(ticket.usedAt),
+    event: {
+      ...summary.event,
+      address: event.address,
+    },
+  };
+}
