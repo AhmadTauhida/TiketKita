@@ -263,3 +263,10 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Alasan:** Menutup seluruh layar Fase 7 tanpa menambah dependensi.
 - **Dampak:** `frontend/lib/core/utils/validators.dart`, `frontend/lib/services/auth_service.dart`, `frontend/lib/state/auth_state.dart`, `frontend/lib/widgets/user_avatar.dart`, `frontend/lib/screens/profile`, `frontend/lib/routes/app_routes.dart`, `frontend/test/validators_test.dart`, `frontend/test/navigation_test.dart`.
 - **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 10 tes lulus, termasuk widget test Bottom Navigation Bar).
+
+## [2026-11-19] Fase 8: verifikasi integrasi dan finalisasi
+- **Konteks:** Fase 8 meminta uji end-to-end, perbaikan bug, README final, pemeriksaan rahasia, dan build APK. Pengujian APK di perangkat diserahkan ke pemilik produk.
+- **Pilihan/verifikasi:** `npm test` 58 lulus; `flutter analyze` bersih; `flutter test` 10 lulus; API produksi diuji 13/13 untuk katalog, featured, gratis, stok 3, sold out, CANCELLED, COMPLETED, 404, dan 401; pembayaran sukses + tiket + QR + pembayaran ganda diuji sebelumnya; pemindaian riwayat Git tidak menemukan kredensial nyata (hanya placeholder di `.env.example`/PRD); `flutter build apk --release` dengan URL produksi berhasil (≈53 MB) memakai JBR 25.
+- **Catatan build:** Flutter 3.47 otomatis memigrasikan `minSdk = 23` menjadi `flutter.minSdkVersion` (24) saat build; nilai 24 tetap memenuhi kebutuhan `flutter_secure_storage`.
+- **Dampak:** `README.md`, `frontend/README.md`, `frontend/android/app/build.gradle.kts`. APK berada di `frontend/build/` dan tidak di-commit.
+- **Status:** diputuskan agent; menunggu pemilik produk untuk uji manual emulator/perangkat, uji APK, dan asistensi/responsi.
