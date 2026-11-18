@@ -1,60 +1,100 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import 'core/constants/app_constants.dart';
+import 'core/network/api_client.dart';
+import 'core/storage/token_storage.dart';
 import 'core/theme/app_theme.dart';
+import 'routes/app_routes.dart';
+import 'services/auth_service.dart';
+import 'services/booking_service.dart';
+import 'services/event_service.dart';
+import 'services/payment_service.dart';
+import 'services/ticket_service.dart';
+import 'state/auth_state.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Intl.defaultLocale = 'id_ID';
   await initializeDateFormatting('id_ID');
-  runApp(const TiketKitaApp());
+
+  final tokenStorage = TokenStorage();
+  final apiClient = ApiClient(
+    baseUrl: AppConstants.apiBaseUrl,
+    tokenStorage: tokenStorage,
+  );
+  final authService = AuthService(apiClient);
+  final eventService = EventService(apiClient);
+  final bookingService = BookingService(apiClient);
+  final paymentService = PaymentService(apiClient);
+  final ticketService = TicketService(apiClient);
+
+  runApp(
+    TiketKitaApp(
+      tokenStorage: tokenStorage,
+      apiClient: apiClient,
+      authService: authService,
+      eventService: eventService,
+      bookingService: bookingService,
+      paymentService: paymentService,
+      ticketService: ticketService,
+    ),
+  );
 }
 
 class TiketKitaApp extends StatelessWidget {
-  const TiketKitaApp({super.key});
+  const TiketKitaApp({
+    super.key,
+    required this.tokenStorage,
+    required this.apiClient,
+    required this.authService,
+    required this.eventService,
+    required this.bookingService,
+    required this.paymentService,
+    required this.ticketService,
+  });
+
+  final TokenStorage tokenStorage;
+  final ApiClient apiClient;
+  final AuthService authService;
+  final EventService eventService;
+  final BookingService bookingService;
+  final PaymentService paymentService;
+  final TicketService ticketService;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: AppConstants.appName,
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      home: const _BootstrapScreen(),
-    );
-  }
-}
-
-class _BootstrapScreen extends StatelessWidget {
-  const _BootstrapScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.confirmation_number_rounded,
-              size: 72,
-              color: AppColors.primary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              AppConstants.appName,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Temukan Acara, Pesan Tiket, Nikmati Momen',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
+    return MultiProvider(
+      providers: [
+        Provider<ApiClient>.value(value: apiClient),
+        Provider<EventService>.value(value: eventService),
+        Provider<BookingService>.value(value: bookingService),
+        Provider<PaymentService>.value(value: paymentService),
+        Provider<TicketService>.value(value: ticketService),
+        ChangeNotifierProvider<AuthState>(
+          create: (_) => AuthState(
+            authService,
+            tokenStorage,
+            apiClient,
+            () {
+              AppRoutes.navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                AppRoutes.login,
+                (_) => false,
+                arguments: true,
+              );
+            },
+          ),
         ),
+      ],
+      child: MaterialApp(
+        title: AppConstants.appName,
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        navigatorKey: AppRoutes.navigatorKey,
+        initialRoute: AppRoutes.splash,
+        onGenerateRoute: AppRoutes.onGenerateRoute,
       ),
     );
   }

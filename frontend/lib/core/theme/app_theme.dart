@@ -10,14 +10,31 @@ class AppColors {
 
 class AppTheme {
   static ThemeData get light {
-    final ColorScheme colorScheme = ColorScheme.fromSeed(
+    final scheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
+    ).copyWith(
+      secondary: AppColors.accent,
+      error: AppColors.error,
+      surface: Colors.white,
     );
 
     return ThemeData(
       useMaterial3: true,
-      colorScheme: colorScheme,
+      colorScheme: scheme,
       scaffoldBackgroundColor: AppColors.background,
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: Colors.white,
+        indicatorColor: AppColors.primary.withValues(alpha: 0.12),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      ),
     );
   }
 }

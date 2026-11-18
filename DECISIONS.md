@@ -200,3 +200,73 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Alasan:** Memenuhi DoD Fase 6 dan PRD 19 tanpa menambah dependensi atau mengubah kontrak API.
 - **Dampak:** `backend/vercel.json`, `backend/postman/`, `backend/README.md`.
 - **Status:** diputuskan agent (terverifikasi: `npm test` 58 lulus; smoke test `GET /health`, `GET /`, `GET /api/v1/categories` merespons 200).
+
+## [2026-11-18] Fase 7 increment 1: fondasi Flutter dan Home
+- **Konteks:** Frontend baru memiliki tema dan bootstrap; Home (PRD 7.1) membutuhkan ApiClient, model, service, sesi autentikasi, routing, dan MainShell.
+- **Pilihan:** `ApiClient` terpusat dengan token dari secure storage dan penanganan 401; `AuthState` sebagai provider sesi; MainShell dengan Bottom Navigation dan placeholder Explore/My Tickets/Profile; tab privat menampilkan snackbar sampai halaman Login tersedia; Home memuat featured, kategori, dan acara terdekat secara paralel dengan loading, error + "Coba Lagi", empty state, dan pull-to-refresh; kartu acara membuka placeholder Event Detail.
+- **Alasan:** Memenuhi tampilan dan perilaku Home tanpa mendahului halaman lain, sekaligus menyiapkan fondasi yang dipakai seluruh Fase 7.
+- **Dampak:** `frontend/lib/core`, `models`, `services`, `state`, `routes`, `screens`, `widgets`, `main.dart`, `test/widget_test.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 3 tes formatter lulus).
+
+## [2026-11-18] Fase 7 increment 2: halaman Explore
+- **Konteks:** PRD 7.1 meminta Explore dengan search bar (debounce 400 ms), chip kategori termasuk "Semua", daftar acara dengan infinite scroll, dan empty state.
+- **Pilihan:** `ExploreScreen` memuat kategori sekali dan daftar acara per halaman (`limit=10`); pencarian dan perubahan kategori mereset daftar; `_requestId` membuang respons lama; pagination dipicu `extentAfter < 300`; error pagination ditampilkan lewat snackbar; FocusNode dimiliki MainShell agar pencarian dari Home langsung fokus ke kolom Explore.
+- **Alasan:** Memenuhi perilaku Explore tanpa menambah dependensi dan tanpa mengubah kontrak API.
+- **Dampak:** `frontend/lib/screens/explore/explore_screen.dart`, `frontend/lib/screens/main_shell.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 3 tes formatter lulus).
+
+## [2026-11-18] Fase 7 increment 3: halaman Event Detail
+- **Konteks:** PRD 7.1 dan 7.4 meminta detail acara dengan poster, informasi lengkap, stepper tiket 0-10 dibatasi stok, total, tombol "Pesan Tiket", serta label nonaktif sesuai status acara.
+- **Pilihan:** Menambahkan model `EventDetail`, `TicketType`, `BookingDraft`, widget `QuantityStepper`, dan `EventService.getEventDetail`. Total dihitung lokal hanya untuk tampilan; angka final tetap dari `POST /bookings`. Tamu yang menekan "Pesan Tiket" mendapat snackbar sampai halaman Login dibuat. Pengguna login diarahkan ke Checkout (placeholder) dengan `BookingDraft`.
+- **Alasan:** Memenuhi perilaku Event Detail tanpa mengubah kontrak API dan menyiapkan data yang dibutuhkan Checkout.
+- **Dampak:** `frontend/lib/models`, `frontend/lib/services/event_service.dart`, `frontend/lib/widgets/quantity_stepper.dart`, `frontend/lib/screens/event_detail`, `frontend/lib/screens/checkout`, `frontend/lib/routes/app_routes.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 3 tes formatter lulus).
+
+## [2026-11-18] Fase 7 increment 4: Auth (Login dan Register)
+- **Konteks:** PRD 7.1, 7.4, dan D-03/D-08 meminta Login, Register, auto-login setelah register, permintaan login saat memesan atau membuka tab privat, serta penanganan 401.
+- **Pilihan:** Menambahkan validasi klien bersama, `AuthSession`, `AuthService.login/register`, dan `AuthState.login/register`. Login/Register memakai hasil `Navigator.pop(true)` sebagai pengganti `redirectTo` agar layar pemanggil dapat melanjutkan alur. Event Detail langsung membuka Checkout setelah login tanpa kehilangan pilihan jumlah. Tab My Tickets/Profile membuka Login lalu berpindah tab bila berhasil. 401 global memakai `AppRoutes.navigatorKey` untuk membersihkan stack dan membuka Login dengan pesan sesi berakhir.
+- **Alasan:** Memenuhi alur autentikasi PRD tanpa menambah dependensi dan tanpa mengubah kontrak API.
+- **Dampak:** `frontend/lib/core/utils/validators.dart`, `frontend/lib/models/auth_session.dart`, `frontend/lib/services/auth_service.dart`, `frontend/lib/state/auth_state.dart`, `frontend/lib/screens/auth`, `frontend/lib/routes/app_routes.dart`, `frontend/lib/main.dart`, `frontend/lib/screens/main_shell.dart`, `frontend/lib/screens/event_detail/event_detail_screen.dart`, `frontend/test/validators_test.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 7 tes lulus).
+
+## [2026-11-18] Fase 7 increment 5: halaman Checkout
+- **Konteks:** PRD 7.1 dan 7.4 meminta ringkasan acara, rincian tiket, total, tombol "Lanjutkan", lalu `POST /bookings` dan Checkout diganti Payment.
+- **Pilihan:** Menambahkan model `Booking`, `Payment`, dan `BookingService.createBooking`; total Checkout hanya pratinjau dari `BookingDraft`. Setelah booking sukses, `pushReplacementNamed` membawa `Booking` hasil server ke Payment (placeholder). Payment nanti memakai `booking.totalAmount` sebagai nominal.
+- **Alasan:** Memenuhi alur Checkout tanpa menghitung ulang harga di client dan menyiapkan data untuk Payment.
+- **Dampak:** `frontend/lib/models/booking.dart`, `frontend/lib/models/payment.dart`, `frontend/lib/services/booking_service.dart`, `frontend/lib/screens/checkout/checkout_screen.dart`, `frontend/lib/screens/payment/payment_screen.dart`, `frontend/lib/routes/app_routes.dart`, `frontend/lib/main.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 7 tes lulus).
+
+## [2026-11-18] Fase 7 increment 6: Payment dan Payment Success
+- **Konteks:** PRD 7.1, 7.3, 7.4, dan 13.4 meminta hitung mundur 15 menit, pilihan metode, pembayaran simulasi, penanganan 409, serta layar sukses dengan aksi ke tiket/beranda.
+- **Pilihan:** Menambahkan `PaymentService`, `BookingService.getBooking`, dan `formatCountdown`. Metode default `BANK_TRANSFER`. Saat countdown habis, booking dimuat ulang dari server agar status `EXPIRED` ditentukan backend. 409 "Pemesanan sudah dibayar" memuat ulang booking lalu langsung ke Payment Success. Payment Success mengarah ke MainShell tab My Tickets (`arguments: 2`) atau tab Home (`arguments: 0`).
+- **Alasan:** Memenuhi alur pembayaran dan idempotensi dari sisi UI tanpa menghitung nominal di client.
+- **Dampak:** `frontend/lib/services/payment_service.dart`, `frontend/lib/services/booking_service.dart`, `frontend/lib/core/utils/formatters.dart`, `frontend/lib/screens/payment`, `frontend/lib/screens/main_shell.dart`, `frontend/lib/routes/app_routes.dart`, `frontend/lib/main.dart`, `frontend/test/widget_test.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 8 tes lulus).
+
+## [2026-11-18] Fase 7 increment 7: My Tickets
+- **Konteks:** PRD 7.1 dan 7.2 meminta dua sub-tab (Tiket dan Pesanan), kartu ringkas dengan badge status, serta empty state tamu.
+- **Pilihan:** Menambahkan `EventBrief` bersama, `TicketSummary`, `TicketService.listTickets`, `BookingService.listBookings`, kartu tiket/pesanan, dan `StatusBadge`. Kedua tab memuat maksimal 50 data terbaru tanpa infinite scroll; detail Booking/Ticket masih placeholder. Tamu melihat empty state dengan tombol Masuk dan daftar dimuat ulang setelah `AuthState` berubah.
+- **Alasan:** Data MVP sedikit, sehingga satu halaman cukup; pagination UI dapat ditambahkan tanpa mengubah kontrak API.
+- **Dampak:** `frontend/lib/models/event_brief.dart`, `frontend/lib/models/ticket.dart`, `frontend/lib/models/booking.dart`, `frontend/lib/services/ticket_service.dart`, `frontend/lib/services/booking_service.dart`, `frontend/lib/widgets/status_badge.dart`, `frontend/lib/widgets/ticket_card.dart`, `frontend/lib/widgets/booking_card.dart`, `frontend/lib/screens/tickets`, `frontend/lib/screens/bookings`, `frontend/lib/routes/app_routes.dart`, `frontend/lib/main.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 8 tes lulus).
+
+## [2026-11-18] Fase 7 increment 8: Booking Detail dan Ticket Detail
+- **Konteks:** PRD 7.1, 7.3, 7.4, FR-18, dan FR-19 meminta detail pesanan dengan aksi sesuai status, serta detail tiket dengan QR Code.
+- **Pilihan:** Booking Detail memuat ulang `GET /bookings/:id`, menampilkan hitung mundur untuk PENDING, aksi "Bayar Sekarang"/"Batalkan Pemesanan" dengan dialog, dan "Lihat Tiket" untuk PAID. Pembatalan sukses mengembalikan pengguna ke daftar Pesanan dan memuat ulang daftar. Ticket Detail memakai `GET /tickets/:id` dan `QrImageView` berisi `qrToken` (220 dp, latar putih). `BookingService.cancelBooking` dan `TicketService.getTicket` ditambahkan.
+- **Alasan:** Menutup alur utama MVP (pesan → bayar → tiket + QR → batal) sesuai PRD tanpa dependensi baru.
+- **Dampak:** `frontend/lib/models/ticket_detail.dart`, `frontend/lib/services/booking_service.dart`, `frontend/lib/services/ticket_service.dart`, `frontend/lib/screens/bookings/booking_detail_screen.dart`, `frontend/lib/screens/tickets/ticket_detail_screen.dart`, `frontend/lib/screens/tickets/my_tickets_screen.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 8 tes lulus).
+
+## [2026-11-18] Fase 7 increment 9: Profile, Edit Profile, dan About
+- **Konteks:** PRD 7.1, FR-04, FR-05, FR-21, dan FR-22 meminta profil, edit profil, About, dan logout.
+- **Pilihan:** Profil menampilkan avatar (URL atau inisial), nama, email, telepon, serta menu Edit Profil/About/Logout dengan dialog konfirmasi. Logout membersihkan token dan kembali ke MainShell sebagai tamu. Edit Profil memakai `PUT /users/profile`; email read-only dan URL foto opsional dengan validasi http/https. About menampilkan nama, versi, deskripsi, platform, dan konteks; identitas pengembang diisi "Tim TiketKita" dan dapat diganti pemilik produk.
+- **Alasan:** Menutup seluruh layar Fase 7 tanpa menambah dependensi.
+- **Dampak:** `frontend/lib/core/utils/validators.dart`, `frontend/lib/services/auth_service.dart`, `frontend/lib/state/auth_state.dart`, `frontend/lib/widgets/user_avatar.dart`, `frontend/lib/screens/profile`, `frontend/lib/routes/app_routes.dart`, `frontend/test/validators_test.dart`, `frontend/test/navigation_test.dart`.
+- **Status:** diputuskan agent (terverifikasi: `flutter analyze` bersih, 10 tes lulus, termasuk widget test Bottom Navigation Bar).
+
+## [2026-11-19] Fase 8: verifikasi integrasi dan finalisasi
+- **Konteks:** Fase 8 meminta uji end-to-end, perbaikan bug, README final, pemeriksaan rahasia, dan build APK. Pengujian APK di perangkat diserahkan ke pemilik produk.
+- **Pilihan/verifikasi:** `npm test` 58 lulus; `flutter analyze` bersih; `flutter test` 10 lulus; API produksi diuji 13/13 untuk katalog, featured, gratis, stok 3, sold out, CANCELLED, COMPLETED, 404, dan 401; pembayaran sukses + tiket + QR + pembayaran ganda diuji sebelumnya; pemindaian riwayat Git tidak menemukan kredensial nyata (hanya placeholder di `.env.example`/PRD); `flutter build apk --release` dengan URL produksi berhasil (≈53 MB) memakai JBR 25.
+- **Catatan build:** Flutter 3.47 otomatis memigrasikan `minSdk = 23` menjadi `flutter.minSdkVersion` (24) saat build; nilai 24 tetap memenuhi kebutuhan `flutter_secure_storage`.
+- **Dampak:** `README.md`, `frontend/README.md`, `frontend/android/app/build.gradle.kts`. APK berada di `frontend/build/` dan tidak di-commit.
+- **Status:** diputuskan agent; menunggu pemilik produk untuk uji manual emulator/perangkat, uji APK, dan asistensi/responsi.
