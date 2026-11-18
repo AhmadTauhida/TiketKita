@@ -79,3 +79,46 @@ export function serializeEventDetail(event) {
     })),
   };
 }
+
+export function serializePayment(payment) {
+  return {
+    id: payment.id,
+    paymentMethod: payment.paymentMethod,
+    status: payment.status,
+    amount: toNumber(payment.amount),
+    transactionReference: payment.transactionReference,
+    paidAt: toIsoString(payment.paidAt),
+  };
+}
+
+export function serializeBooking(booking) {
+  const event = booking.details[0]?.ticketType?.event;
+
+  return {
+    id: booking.id,
+    bookingCode: booking.bookingCode,
+    status: booking.status,
+    totalAmount: toNumber(booking.totalAmount),
+    totalQuantity: booking.details.reduce((total, detail) => total + detail.quantity, 0),
+    expiresAt: toIsoString(booking.expiresAt),
+    createdAt: toIsoString(booking.createdAt),
+    event: event
+      ? {
+          id: event.id,
+          title: event.title,
+          imageUrl: event.imageUrl,
+          eventDate: toIsoString(event.eventDate),
+          location: event.location,
+        }
+      : null,
+    items: booking.details.map((detail) => ({
+      id: detail.id,
+      ticketTypeId: detail.ticketTypeId,
+      ticketTypeName: detail.ticketType.name,
+      quantity: detail.quantity,
+      unitPrice: toNumber(detail.unitPrice),
+      subtotal: toNumber(detail.subtotal),
+    })),
+    payment: booking.payment ? serializePayment(booking.payment) : null,
+  };
+}
