@@ -20,3 +20,13 @@ export async function updateProfile(req, res) {
     data: { user },
   });
 }
+
+export async function uploadProfilePhoto(req, res) {
+  const user = await usersService.uploadProfilePhoto(req.userId, req.file);
+
+  return sendSuccess(res, {
+    status: 200,
+    message: 'Foto profil berhasil diperbarui',
+    data: { user },
+  });
+}

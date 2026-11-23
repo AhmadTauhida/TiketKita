@@ -20,6 +20,7 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 | helmet | 8.3.0 |
 | cors | 2.8.6 |
 | morgan | 1.12.1 |
+| multer | 2.5.0 |
 | Vitest | 5.1.0 |
 | supertest | 7.3.2 |
 | nodemon | 3.1.14 |
@@ -30,6 +31,7 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 | qr_flutter | 4.1.0 |
 | intl | 0.20.3 |
 | provider | 6.1.5+1 |
+| image_picker | 1.2.4 |
 
 `package-lock.json` dan `pubspec.lock` dikunci di repositori.
 
@@ -270,3 +272,144 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Catatan build:** Flutter 3.47 otomatis memigrasikan `minSdk = 23` menjadi `flutter.minSdkVersion` (24) saat build; nilai 24 tetap memenuhi kebutuhan `flutter_secure_storage`.
 - **Dampak:** `README.md`, `frontend/README.md`, `frontend/android/app/build.gradle.kts`. APK berada di `frontend/build/` dan tidak di-commit.
 - **Status:** diputuskan agent; menunggu pemilik produk untuk uji manual emulator/perangkat, uji APK, dan asistensi/responsi.
+
+## [2026-11-23] Perluasan scope: upload foto profil
+- **Konteks:** PRD 3.2 butir 10, D-12, dan D-23 menetapkan foto profil hanya berupa URL dan upload file di luar MVP. Pemilik produk menyetujui upload foto profil masuk scope pada 2026-11-23.
+- **Pilihan:** Menambah endpoint privat `POST /api/v1/users/profile/photo` dengan `multipart/form-data` dan field `photo`. `PUT /api/v1/users/profile` tetap dipertahankan untuk nama, telepon, dan kompatibilitas `profileImage` berupa URL. Flutter berhenti mengirim `profileImage` saat hanya mengubah nama/telepon agar foto hasil upload tidak tertimpa `null`.
+- **Alasan:** Pengguna dapat mengganti foto tanpa mencari URL eksternal, sementara kontrak `PUT` lama dan tes/Postman yang sudah ada tetap berjalan.
+- **Dampak:** `backend/src/modules/users`, `backend/src/middlewares`, `backend/src/services/storage.js`, `backend/src/config/env.js`, `backend/.env.example`, `backend/tests`, koleksi Postman, `frontend/lib/core/network/api_client.dart`, `frontend/lib/services/auth_service.dart`, `frontend/lib/state/auth_state.dart`, `frontend/lib/screens/profile/edit_profile_screen.dart`, `frontend/lib/widgets/user_avatar.dart`, `frontend/pubspec.yaml`, README.
+- **Status:** diputuskan pemilik produk. PRD bagian 3.2, D-12, D-23, 10.1, 10.2, 14.2, 14.4, 14.5, 16, 18.1, dan 19.1 masih perlu direvisi pemilik produk; agent tidak mengubah isi PRD.
+
+## [2026-11-23] Penyimpanan media: satu bucket publik `media`
+- **Konteks:** Foto profil dan poster event bersifat publik, sedangkan bukti pembayaran nantinya privat. Vercel tidak menyediakan filesystem permanen untuk menyimpan file upload.
+- **Pilihan:** Memakai satu bucket Supabase Storage publik `media` dengan prefix `avatars/{userId}/...` dan `events/{eventId}/...`. Bucket privat terpisah (misalnya `private-media`) hanya dibuat jika fitur file privat disetujui. Upload hanya dari backend memakai service-role key dari environment; tidak memakai `supabase-js`, Data API `/rest/v1`, RLS, atau policy baru.
+- **Alasan:** Kedua aset sama-sama publik, ditulis lewat backend, dan dapat memakai CDN yang sama. Satu bucket mengurangi konfigurasi, sedangkan prefix menjaga pemisahan logis dan menyiapkan poster event tanpa mengunci bucket ke avatar.
+- **Dampak:** Bucket Supabase `media`, env `SUPABASE_MEDIA_BUCKET`, adapter storage backend, README backend, dan environment Vercel.
+- **Status:** diputuskan pemilik produk. Bucket `media` sudah dibuat dan diverifikasi melalui metadata storage: publik, prefix root `avatars/` dan `events/`, MIME `image/jpeg`, `image/png`, `image/webp`, serta public read HTTP 200.
+
+## [2026-11-23] Kebijakan file media publik
+- **Konteks:** Perlu batas format, ukuran, dan penamaan yang konsisten antara bucket Supabase Storage, backend, dan Flutter.
+- **Pilihan:** MIME yang diizinkan `image/jpeg`, `image/png`, dan `image/webp`; menolak SVG, GIF, HEIC, BMP, TIFF, dan `application/octet-stream`. Batas bucket 5 MB; backend menegakkan 2 MB untuk avatar dan 4 MB untuk poster event karena body request Vercel dibatasi sekitar 4,5 MB. Validasi memakai MIME dan magic bytes. Nama object dibuat server dengan pola `{purpose}/{ownerId}/{uuid}.{ext}`.
+- **Alasan:** SVG berisiko XSS, file non-gambar dapat menyamar lewat MIME, dan nama unik mencegah cache basi saat foto diganti.
+- **Dampak:** Middleware upload, adapter storage, `env.js`, pengaturan bucket, README, dan tes backend.
+- **Status:** diputuskan agent berdasarkan bucket yang sudah diverifikasi; batas ukuran per jenis masih dapat diubah pemilik produk.
+
+## [2026-11-23] Kontrak respons upload foto
+- **Konteks:** PRD 14.2 belum memuat status code untuk upload file. Respons harus tetap memakai envelope dan pesan Bahasa Indonesia.
+- **Pilihan:** File tidak ada, format tidak didukung, atau ukuran berlebih dijawab **422** dengan `errors[]` (field `photo`). Kegagalan storage dijawab **502** dengan pesan `Gagal mengunggah foto, coba lagi`. Tanpa token tetap **401**. Status 413/415 tidak dipakai agar peta status code tetap kecil.
+- **Alasan:** 422 konsisten dengan pola validasi yang sudah ada, sedangkan 502 membedakan kegagalan layanan storage dari bug internal 500.
+- **Dampak:** `errors.js`, `middlewares/error.js`, controller/service users, PRD 14.2 dan 16 (perlu revisi pemilik produk), koleksi Postman, tes.
+- **Status:** diputuskan agent; menunggu revisi PRD oleh pemilik produk.
+
+## [2026-11-23] Dependensi upload foto
+- **Konteks:** Express belum menangani `multipart/form-data`, dan Flutter belum memiliki pemilih gambar. PRD 10.1/10.2 belum mencantumkan paket ini.
+- **Pilihan:** Menambahkan `multer` di backend dan `image_picker` di Flutter. Versi stabil terbaru akan dikunci di `package-lock.json`/`pubspec.lock` dan dicatat di tabel versi setelah instalasi. Tidak menambahkan `supabase-js` atau SDK storage lain; upload Supabase memakai REST Storage API lewat `fetch` bawaan Node.js.
+- **Alasan:** Kedua paket adalah pilihan minimal untuk kebutuhan masing-masing platform tanpa menambah SDK besar.
+- **Dampak:** `backend/package.json`, `backend/package-lock.json`, `frontend/pubspec.yaml`, `frontend/pubspec.lock`, tabel versi DECISIONS, PRD 10.1/10.2 (perlu revisi pemilik produk).
+- **Status:** diputuskan agent; belum terpasang.
+
+## [2026-11-23] Manajemen event admin dan poster event belum masuk scope
+- **Konteks:** Pemilik produk menanyakan kemungkinan admin melakukan CRUD event dan upload poster. Fitur ini masih di luar MVP (PRD 3.2 butir 2 dan 3) dan role Admin masih dilarang.
+- **Pilihan:** Struktur bucket `media/events/` disiapkan agar siap dipakai, tetapi admin CRUD, role Admin, dan endpoint upload poster belum diimplementasikan.
+- **Alasan:** Menghindari mengerjakan fitur di luar MVP tanpa keputusan scope terpisah. Desain bucket tidak sama dengan persetujuan fitur admin.
+- **Dampak:** Tidak ada kode; hanya desain bucket dan catatan ini.
+- **Status:** menunggu pemilik produk (perlu persetujuan scope dan revisi PRD terpisah).
+
+## [2026-11-23] Rencana fase pengembangan upload foto profil
+- **Konteks:** Scope upload foto profil sudah disetujui dan bucket `media` sudah siap. Implementasi perlu dipecah agar backend, frontend, dan verifikasi tidak saling menunggu, serta tetap bisa diuji tanpa kredensial storage nyata.
+- **Pilihan:** Lima fase berikut dikerjakan berurutan.
+
+  1. **Fase 1 — Konfigurasi dan fondasi storage backend**
+     - Tambah env `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_MEDIA_BUCKET`, dan `STORAGE_DRIVER` (`supabase`/`memory`).
+     - Buat adapter `storage.js` dengan operasi upload, public URL, dan delete. Mode `memory` dipakai tes; mode `supabase` memakai REST Storage API lewat `fetch`, bukan `supabase-js`/Data API.
+     - Tambah `multer` memory storage, limit ukuran, filter MIME, dan validasi magic bytes.
+     - Tambah error 422/502 dan pemetaan error multer.
+     - **DoD:** unit test adapter storage (mock/memory) lulus; `env.js` tidak mewajibkan kredensial storage saat tes; tidak ada kredensial di repo.
+
+  2. **Fase 2 — Endpoint upload foto profil**
+     - Tambah `POST /api/v1/users/profile/photo` (privat, field `photo`).
+     - Upload object ke `media/avatars/{userId}/{uuid}.{ext}`, simpan URL publik ke `users.profile_image`, kembalikan `data.user`.
+     - Hapus object lama secara best-effort jika berasal dari bucket yang sama.
+     - Tambah tes: sukses, tanpa token, tanpa file, format salah, ukuran berlebih, magic bytes salah, dan penggantian foto.
+     - Tambah request Postman multipart.
+     - **DoD:** `npm test` hijau; tidak perlu migration database; respons dan status code sesuai keputusan 2026-11-23.
+
+  3. **Fase 3 — Fondasi network dan state Flutter**
+     - Tambah `image_picker` dan method multipart di `ApiClient` dengan timeout upload terpisah (60 detik).
+     - Tambah `AuthService.uploadProfilePhoto` dan `AuthState.uploadProfilePhoto`.
+     - Ubah `updateProfile` agar tidak mengirim `profileImage` kecuali sedang menghapus foto.
+     - **DoD:** `flutter analyze` bersih; tes unit untuk pemetaan respons/401 jika memungkinkan.
+
+  4. **Fase 4 — UI Edit Profil**
+     - Ganti input URL dengan avatar + tombol “Ubah Foto”.
+     - Pilih dari galeri, kompres via `image_picker` (`maxWidth`/`maxHeight` 1024, quality 85), validasi ukuran 2 MB, tampilkan preview lokal.
+     - Saat “Simpan”: validasi form, upload foto lebih dulu, lalu `PUT` nama/telepon bila berubah. Jika upload gagal, data teks tidak dikirim. Jika `PUT` gagal setelah upload sukses, tampilkan pesan bahwa foto sudah tersimpan.
+     - Tambah aksi “Hapus Foto” lewat `PUT` dengan `profileImage: null`.
+     - Kamera tidak dimasukkan pada fase ini; galeri saja untuk menghindari izin tambahan.
+     - **DoD:** alur pilih → preview → simpan berfungsi, loading/error/empty state ada, tombol nonaktif saat request, dan 401 kembali ke Login.
+
+  5. **Fase 5 — Integrasi, verifikasi, dan dokumentasi**
+     - Isi kredensial storage di `.env` lokal dan environment Vercel (tidak di-commit).
+     - Uji upload nyata ke bucket `media`, penggantian foto, hapus foto, file invalid, dan file >2 MB.
+     - Uji end-to-end: Login → Edit Profil → upload → kembali ke Profile → avatar berubah → logout/login ulang tetap tampil.
+     - Perbarui README, Postman, tabel versi dependensi, dan status DECISIONS.
+     - **DoD:** `npm test` hijau, `flutter analyze` bersih, `flutter test` lulus, `flutter build apk --release` berhasil, dan bucket berisi object `avatars/{userId}/...` yang dapat dibaca publik.
+- **Alasan:** Memisahkan fondasi storage dari endpoint dan UI membuat setiap fase dapat diverifikasi sendiri. Tes tidak bergantung pada bucket nyata, sehingga pengembangan tidak terblokir kredensial.
+- **Dampak:** `backend/src/config`, `backend/src/middlewares`, `backend/src/services`, `backend/src/modules/users`, `backend/tests`, `backend/postman`, `backend/.env.example`, `backend/README.md`, `frontend/lib/core/network`, `frontend/lib/services/auth_service.dart`, `frontend/lib/state/auth_state.dart`, `frontend/lib/screens/profile/edit_profile_screen.dart`, `frontend/lib/widgets/user_avatar.dart`, `frontend/test`, `frontend/pubspec.yaml`, `frontend/README.md`, `README.md`.
+- **Status:** diputuskan agent. Fase 1 dan 2 dapat dimulai tanpa service-role key dengan mode `memory`; verifikasi bucket nyata menunggu `SUPABASE_SERVICE_ROLE_KEY` di `backend/.env`. Revisi PRD oleh pemilik produk tetap diperlukan sebelum fitur dinyatakan selesai.
+
+## [2026-11-23] Fase 1 upload foto profil selesai
+- **Konteks:** Fase 1 mencakup konfigurasi storage, adapter `memory`/`supabase`, validasi gambar, middleware upload, error 502, dan tes tanpa bucket nyata.
+- **Pilihan:** Menambahkan `multer` 2.5.0, env `STORAGE_DRIVER`/`SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_MEDIA_BUCKET`, adapter `src/services/storage.js` dengan REST Storage API lewat `fetch`, deteksi magic bytes JPEG/PNG/WebP di `src/utils/image.js`, serta middleware `uploadAvatar`/`validateAvatar` dan `uploadEventPoster`/`validateEventPoster` di `src/middlewares/upload.js`. `BadGatewayError` (502) ditambahkan untuk kegagalan storage.
+- **Verifikasi:** `npx vitest run tests/storage.test.js` → 16 tes lulus; `npm test` → 74 tes lulus (58 tes lama + 16 tes baru); `git diff --check` bersih.
+- **Dampak:** `backend/package.json`, `backend/package-lock.json`, `backend/src/config/env.js`, `backend/src/services/storage.js`, `backend/src/utils/image.js`, `backend/src/middlewares/upload.js`, `backend/src/utils/errors.js`, `backend/.env.example`, `backend/.env.test.example`, `backend/tests/storage.test.js`, `backend/README.md`.
+- **Status:** diputuskan agent (Fase 1 selesai). Endpoint `POST /users/profile/photo` dan UI belum dibuat (Fase 2–4). Verifikasi bucket nyata tetap menunggu `SUPABASE_SERVICE_ROLE_KEY` di `backend/.env`.
+
+## [2026-11-23] Fase 2 upload foto profil selesai
+- **Konteks:** Fase 2 mencakup endpoint upload foto profil, penyimpanan URL ke database, pembersihan foto lama, tes endpoint, dan request Postman.
+- **Pilihan:** Menambahkan `POST /api/v1/users/profile/photo` dengan urutan `authenticate → uploadAvatar → validateAvatar → controller`. Service memverifikasi pengguna, membuat path `avatars/{userId}/{uuid}.{ext}`, mengunggah ke storage, menyimpan URL ke `users.profile_image`, menghapus file baru jika update database gagal, dan menghapus file lama secara best-effort. `PUT /users/profile` tidak berubah. Request Postman memakai `form-data` field `photo`.
+- **Verifikasi:** `npx vitest run tests/users.test.js` → 11 tes lulus; `npm test` → 81 tes lulus (74 tes lama + 7 tes endpoint baru); koleksi Postman valid sebagai JSON; `git diff --check` bersih.
+- **Dampak:** `backend/src/modules/users/service.js`, `backend/src/modules/users/controller.js`, `backend/src/modules/users/routes.js`, `backend/tests/users.test.js`, `backend/postman/TiketKita_API.postman_collection.json`, `backend/README.md`, `README.md`.
+- **Status:** diputuskan agent (Fase 2 selesai). UI Flutter belum dibuat (Fase 3–4). Verifikasi bucket nyata tetap menunggu `SUPABASE_SERVICE_ROLE_KEY` di `backend/.env` pada Fase 5.
+
+## [2026-11-23] Fase 3 upload foto profil selesai
+- **Konteks:** Fase 3 mencakup fondasi Flutter untuk memilih, mengirim, dan menyimpan hasil upload foto profil sebelum UI Edit Profil diubah.
+- **Pilihan:** Menambahkan `image_picker` 1.2.4. `ApiClient` mendapat `uploadFile` berbasis `MultipartRequest` dengan timeout 60 detik, header Authorization, dan content type JPEG/PNG/WebP; respons 401/error memakai pemetaan yang sama dengan request JSON. `AuthService` dan `AuthState` mendapat `uploadProfilePhoto`. `updateProfile` sekarang hanya mengirim `profileImage` jika diisi atau `clearProfileImage: true`, sehingga update nama/telepon tidak menghapus foto hasil upload.
+- **Verifikasi:** `flutter analyze` bersih; `flutter test` → 15 tes lulus (5 tes baru di `test/auth_service_test.dart`, termasuk multipart, 401, error 422, pemetaan user, dan perilaku `updateProfile`).
+- **Dampak:** `frontend/pubspec.yaml`, `frontend/pubspec.lock`, `frontend/lib/core/network/api_client.dart`, `frontend/lib/services/auth_service.dart`, `frontend/lib/state/auth_state.dart`, `frontend/test/auth_service_test.dart`, `frontend/README.md`, `README.md`.
+- **Status:** diputuskan agent (Fase 3 selesai). UI Edit Profil dan upload nyata belum dibuat (Fase 4–5).
+
+## [2026-11-23] Fase 4 upload foto profil selesai
+- **Konteks:** Fase 4 mencakup UI Edit Profil untuk memilih, melihat pratinjau, mengunggah, dan menghapus foto profil.
+- **Pilihan:** Input URL foto dihapus dan diganti avatar + tombol “Ubah Foto”/“Hapus Foto”. Galeri memakai `image_picker` dengan kompresi maksimal 1024 px dan quality 85; file divalidasi maksimal 2 MB dan ditampilkan lewat preview lokal. Saat Simpan, foto diunggah lebih dulu, lalu `PUT /users/profile` hanya jika nama/telepon berubah atau foto dihapus. Kegagalan upload tidak mengirim data teks; kegagalan `PUT` setelah upload sukses menampilkan pesan bahwa foto sudah tersimpan. Tombol dinonaktifkan selama request. `UserAvatar` mendukung `ImageProvider` untuk preview lokal. `validateProfileImage` dihapus karena input URL tidak dipakai lagi.
+- **Verifikasi:** `flutter analyze` bersih; `flutter test` → 15 tes lulus, termasuk tes widget Edit Profil yang memastikan input URL tidak ada dan tombol “Ubah Foto” tersedia; `flutter build apk --debug` berhasil (plugin `image_picker` terdaftar).
+- **Dampak:** `frontend/lib/screens/profile/edit_profile_screen.dart`, `frontend/lib/widgets/user_avatar.dart`, `frontend/lib/core/utils/validators.dart`, `frontend/test/validators_test.dart`, `frontend/test/edit_profile_screen_test.dart`, `frontend/README.md`, `README.md`.
+- **Status:** diputuskan agent (Fase 4 selesai). Upload nyata ke bucket `media`, uji end-to-end di emulator, dan build APK menunggu Fase 5 serta `SUPABASE_SERVICE_ROLE_KEY` di `backend/.env`.
+
+## [2026-11-23] Fase 5 verifikasi upload foto profil
+- **Konteks:** Fase 5 meminta integrasi bucket nyata, uji end-to-end, dokumentasi, dan build APK.
+- **Pilihan/verifikasi:** Bucket `media` diverifikasi lewat metadata storage: publik, limit 5 MB, MIME `image/jpeg`/`image/png`/`image/webp`, prefix root `avatars/` dan `events/`. Upload nyata lewat adapter `STORAGE_DRIVER=supabase` berhasil: object `avatars/{uuid}/{uuid}.jpg` dapat diunggah, URL publik merespons HTTP 200, object dapat dihapus, dan bucket kembali hanya berisi placeholder. `npm test` → 83 tes lulus. `flutter analyze` bersih; `flutter test` → 15 tes lulus. Smoke test HTTP dengan `STORAGE_DRIVER=memory` pada schema `test` berhasil: register → login → upload multipart → URL tersimpan di profil. `flutter build apk --release --dart-define=API_BASE_URL=https://tiketkita-three.vercel.app/api/v1` berhasil (≈53,6 MB).
+- **Belum terverifikasi:** Uji end-to-end di emulator/perangkat belum dilakukan karena tidak ada perangkat ADB; environment dan deployment Vercel untuk endpoint baru belum diperbarui; upload nyata memakai service_role legacy (dukungan secret key baru sudah diuji unit, belum diuji ke bucket).
+- **Dampak:** `README.md`, `frontend/README.md`, `DECISIONS.md`.
+- **Status:** menunggu pemilik produk untuk uji perangkat dan deploy Vercel. Langkah manual: hubungkan emulator/perangkat, tambahkan environment storage ke Vercel, deploy backend, lalu uji upload nyata dari APK.
+
+## [2026-11-23] Tes storage tidak boleh menyentuh bucket nyata
+- **Konteks:** `.env` lokal sudah memakai `STORAGE_DRIVER=supabase`, sedangkan `.env.test` tidak memuat variabel itu. Karena `dotenv` tidak mengosongkan variabel yang tidak ada, tes sempat memakai bucket nyata dan meninggalkan dua object uji.
+- **Pilihan:** `env.js` memaksa `storageDriver = memory` bila `NODE_ENV=test`, apa pun nilai `STORAGE_DRIVER` di `.env`. Dua object uji di `media/avatars/` dihapus lewat adapter storage, dan bucket diverifikasi kembali hanya berisi placeholder.
+- **Alasan:** Tes tidak boleh menulis ke data/bucket nyata (PRD 18.1).
+- **Dampak:** `backend/src/config/env.js`, `backend/tests/storage.test.js`.
+- **Status:** diputuskan agent (terverifikasi: `npm test` 83 lulus; bucket bersih).
+
+## [2026-11-23] Dukungan secret key Supabase baru
+- **Konteks:** Supabase akan memensiunkan `anon`/`service_role` legacy pada awal 2027 dan mendorong publishable/secret key baru. `service_role` masih berfungsi sampai saat itu.
+- **Pilihan:** Backend menerima `SUPABASE_SECRET_KEY` (`sb_secret_...`) sebagai preferensi dan tetap menerima `SUPABASE_SERVICE_ROLE_KEY` sebagai fallback legacy. Adapter Storage mengirim kunci selalu lewat header `apikey`; header `Authorization: Bearer` hanya ditambahkan untuk kunci legacy berformat JWT (`eyJ...`) karena secret key baru bukan JWT. Publishable key tidak dipakai untuk upload karena tidak punya hak tulis elevated.
+- **Alasan:** Secret key baru adalah pengganti resmi `service_role`, dapat dirotasi terpisah, dan tetap server-side. Mempertahankan fallback mencegah deployment lama rusak.
+- **Dampak:** `backend/src/config/env.js`, `backend/src/services/storage.js`, `backend/tests/storage.test.js`, `backend/.env.example`, `backend/README.md`, `README.md`.
+- **Status:** diputuskan agent. Unit test header legacy dan secret key baru lulus. Upload nyata ke bucket berhasil memakai service_role legacy dan, setelah migrasi, memakai `sb_secret_...` (hanya header `apikey`). Jika Storage REST menolak secret key hanya dengan `apikey`, alternatif berikutnya adalah kredensial S3-compatible dari Supabase Storage.
+
+## [2026-11-23] Verifikasi secret key Supabase baru
+- **Konteks:** Pemilik produk sudah membuat secret key baru, mengganti environment, dan melakukan redeploy Vercel.
+- **Verifikasi:** `.env` lokal memakai `STORAGE_DRIVER=supabase` dan `SUPABASE_SECRET_KEY` bertipe `sb_secret_...`. Adapter storage berhasil mengunggah object, URL publik merespons HTTP 200, object berhasil dihapus, dan bucket kembali hanya berisi placeholder `avatars/` dan `events/`. `POST https://tiketkita-three.vercel.app/api/v1/users/profile/photo` masih merespons 404 karena perubahan kode belum di-commit/di-push; Vercel hanya menerima commit yang sudah ada di branch deployment.
+- **Alasan:** Memastikan kunci baru benar-benar bekerja sebelum menyatakan integrasi selesai.
+- **Dampak:** Tidak ada perubahan kode; hanya verifikasi.
+- **Status:** secret key lokal terverifikasi. Deployment Vercel menunggu commit/push ke branch yang dipakai Vercel (saat ini branch lokal `feat/frontend`; `origin/main` masih commit lama), lalu redeploy.

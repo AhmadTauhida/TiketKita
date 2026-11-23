@@ -12,11 +12,15 @@ Aplikasi Android untuk mencari acara, memesan tiket, membayar secara simulasi, d
 MVP selesai dan teruji:
 
 - Backend: seluruh endpoint PRD 14.4, 8 tabel, migration + check constraint, seed 5 kategori/15 acara/2 akun demo.
-- Backend test: `npm test` → 58 tes lulus (auth, events, bookings, konkurensi stok, payments, tickets, isolasi data).
-- Frontend: 16 layar Fase 7 selesai; `flutter analyze` bersih dan `flutter test` 10 tes lulus.
+- Backend test: `npm test` → 83 tes lulus (auth, events, bookings, konkurensi stok, payments, tickets, isolasi data, fondasi storage upload, endpoint foto profil).
+- Frontend: 16 layar Fase 7 selesai; `flutter analyze` bersih dan `flutter test` 15 tes lulus.
 - Deployment: API Vercel sudah diuji untuk health, katalog, login, booking, pembayaran sukses, tiket + QR, pembatalan, dan kasus tepi seed.
-- Build APK rilis dengan URL produksi berhasil dibuat (≈53 MB, debug signing).
+- Build APK rilis dengan URL produksi berhasil dibuat (≈53,6 MB, debug signing).
 - Belum diverifikasi: uji manual end-to-end di emulator/perangkat dan uji APK di perangkat fisik (dilakukan pemilik produk).
+
+### Perluasan scope (disetujui 2026-11-23)
+
+Upload foto profil disetujui masuk scope. **Fase 1–4 selesai**; Fase 5 sudah memverifikasi upload nyata ke bucket `media` (upload, URL publik 200, hapus object), `npm test` 83 lulus, `flutter analyze` bersih, `flutter test` 15 lulus, smoke upload mode `memory` berhasil, dan APK rilis berhasil dibangun. **Uji emulator/perangkat dan deploy Vercel untuk endpoint baru masih menunggu pemilik produk** karena tidak ada perangkat ADB dan perubahan kode belum di-commit/di-push; endpoint produksi masih 404. Upload nyata dengan secret key baru sudah diverifikasi lokal. Detail ada di [DECISIONS.md](DECISIONS.md). PRD masih menyebut upload file di luar MVP sampai pemilik produk merevisinya.
 
 ## API Produksi
 
@@ -105,6 +109,8 @@ Konfigurasi rilis saat ini memakai debug signing key. APK tidak di-commit; gunak
 ## Keamanan
 
 Jangan menaruh kredensial (connection string, `JWT_SECRET`, kunci Supabase) di repositori. Konfigurasi hanya lewat environment variable. Akses data hanya lewat Prisma; proyek tidak memakai `supabase-js`, Data API Supabase, RLS, atau Docker pada MVP.
+
+Untuk rencana upload foto, bucket `media` bersifat publik untuk dibaca. Penulisan hanya dilakukan backend memakai secret key Supabase (`sb_secret_...`; legacy `service_role` masih didukung) dari environment; Flutter tidak memegang kunci storage. File privat (misalnya bukti pembayaran) akan memakai bucket terpisah jika fiturnya nanti disetujui.
 
 ## Dokumentasi
 

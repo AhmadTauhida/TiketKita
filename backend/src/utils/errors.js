@@ -35,3 +35,10 @@ export class ValidationError extends AppError {
     this.errors = errors;
   }
 }
+
+export class BadGatewayError extends AppError {
+  constructor(message = 'Gagal menghubungi layanan eksternal') {
+    super(message, 502);
+    this.name = 'BadGatewayError';
+  }
+}

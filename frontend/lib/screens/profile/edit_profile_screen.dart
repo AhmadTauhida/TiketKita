@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/network/api_exception.dart';
@@ -15,12 +18,18 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
+  static const int _maxPhotoBytes = 2 * 1024 * 1024;
+
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _photoController = TextEditingController();
+  final _imagePicker = ImagePicker();
 
   String _email = '';
+  String _initialName = '';
+  String _initialPhone = '';
+  XFile? _selectedPhoto;
+  bool _removePhoto = false;
   bool _loading = false;
   String? _error;
 
@@ -30,17 +39,78 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final user = context.read<AuthState>().user;
 
     _email = user?.email ?? '';
-    _nameController.text = user?.name ?? '';
-    _phoneController.text = user?.phone ?? '';
-    _photoController.text = user?.profileImage ?? '';
+    _initialName = user?.name ?? '';
+    _initialPhone = user?.phone ?? '';
+    _nameController.text = _initialName;
+    _phoneController.text = _initialPhone;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
-    _photoController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickPhoto() async {
+    if (_loading) {
+      return;
+    }
+
+    try {
+      final photo = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (photo == null) {
+        return;
+      }
+
+      final length = await photo.length();
+
+      if (length == 0) {
+        setState(() {
+          _error = 'File foto tidak dapat dibaca.';
+        });
+        return;
+      }
+
+      if (length > _maxPhotoBytes) {
+        setState(() {
+          _error = 'Ukuran foto maksimal 2 MB';
+        });
+        return;
+      }
+
+      setState(() {
+        _selectedPhoto = photo;
+        _removePhoto = false;
+        _error = null;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _error = 'Gagal memilih foto. Coba lagi.';
+      });
+    }
+  }
+
+  void _removeSelectedPhoto() {
+    if (_loading) {
+      return;
+    }
+
+    setState(() {
+      _selectedPhoto = null;
+      _removePhoto = true;
+      _error = null;
+    });
   }
 
   Future<void> _submit() async {
@@ -50,19 +120,50 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
+    final authState = context.read<AuthState>();
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+    final photo = _selectedPhoto;
+
     setState(() {
       _loading = true;
       _error = null;
     });
 
-    try {
-      final photo = _photoController.text.trim();
+    var photoUploaded = false;
 
-      await context.read<AuthState>().updateProfile(
-            name: _nameController.text.trim(),
-            phone: _phoneController.text.trim(),
-            profileImage: photo.isEmpty ? null : photo,
-          );
+    try {
+      if (photo != null) {
+        await authState.uploadProfilePhoto(
+          filePath: photo.path,
+          filename: photo.name,
+        );
+        photoUploaded = true;
+
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _selectedPhoto = null;
+        });
+      }
+
+      final nameChanged = name != _initialName;
+      final phoneChanged = phone != _initialPhone;
+      final shouldUpdate = nameChanged || phoneChanged || _removePhoto;
+
+      if (shouldUpdate) {
+        await authState.updateProfile(
+          name: name,
+          phone: phone,
+          clearProfileImage: _removePhoto,
+        );
+
+        _initialName = name;
+        _initialPhone = phone;
+        _removePhoto = false;
+      }
 
       if (!mounted) {
         return;
@@ -79,7 +180,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       setState(() {
         _loading = false;
-        _error = error.message;
+        _error = photoUploaded && error.statusCode != 401
+            ? 'Foto profil berhasil diperbarui, tetapi data profil gagal diperbarui. ${error.message}'
+            : error.message;
       });
     } catch (_) {
       if (!mounted) {
@@ -88,13 +191,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       setState(() {
         _loading = false;
-        _error = 'Terjadi kesalahan saat memperbarui profil.';
+        _error = photoUploaded
+            ? 'Foto profil berhasil diperbarui, tetapi data profil gagal diperbarui.'
+            : 'Terjadi kesalahan saat memperbarui profil.';
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthState>().user;
+    final hasPhoto =
+        _selectedPhoto != null ||
+        (!_removePhoto && (user?.profileImage?.isNotEmpty ?? false));
+    final preview = _selectedPhoto;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Profil')),
       body: SafeArea(
@@ -111,8 +222,49 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     Center(
                       child: UserAvatar(
                         name: _nameController.text,
-                        imageUrl: _photoController.text,
-                        size: 88,
+                        imageUrl: _removePhoto ? null : user?.profileImage,
+                        imageProvider: preview == null
+                            ? null
+                            : FileImage(File(preview.path)),
+                        size: 96,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TextButton.icon(
+                          onPressed: _loading ? null : _pickPhoto,
+                          icon: const Icon(Icons.photo_library_outlined),
+                          label: const Text('Ubah Foto'),
+                        ),
+                        if (hasPhoto) ...[
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: _loading ? null : _removeSelectedPhoto,
+                            icon: const Icon(Icons.delete_outline_rounded),
+                            label: const Text('Hapus Foto'),
+                          ),
+                        ],
+                        if (_removePhoto) ...[
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: _loading
+                                ? null
+                                : () => setState(() => _removePhoto = false),
+                            icon: const Icon(Icons.undo_rounded),
+                            label: const Text('Batal Hapus'),
+                          ),
+                        ],
+                      ],
+                    ),
+                    Center(
+                      child: Text(
+                        _removePhoto
+                            ? 'Foto akan dihapus saat kamu menyimpan.'
+                            : 'JPG, PNG, atau WebP • maksimal 2 MB',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -144,24 +296,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     TextFormField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
-                      textInputAction: TextInputAction.next,
+                      textInputAction: TextInputAction.done,
                       validator: validatePhone,
+                      onFieldSubmitted: (_) => _submit(),
                       decoration: const InputDecoration(
                         labelText: 'Nomor telepon',
                         prefixIcon: Icon(Icons.phone_outlined),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _photoController,
-                      keyboardType: TextInputType.url,
-                      textInputAction: TextInputAction.done,
-                      validator: validateProfileImage,
-                      onChanged: (_) => setState(() {}),
-                      onFieldSubmitted: (_) => _submit(),
-                      decoration: const InputDecoration(
-                        labelText: 'URL foto profil (opsional)',
-                        prefixIcon: Icon(Icons.image_outlined),
                       ),
                     ),
                     const SizedBox(height: 20),
