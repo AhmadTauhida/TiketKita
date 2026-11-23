@@ -19,6 +19,7 @@ class ApiClient {
   final http.Client _http;
 
   static const Duration _timeout = Duration(seconds: 15);
+  static const Duration _uploadTimeout = Duration(seconds: 60);
   static const String _networkMessage =
       'Tidak dapat terhubung ke server. Periksa koneksi Anda.';
 
@@ -38,6 +39,50 @@ class ApiClient {
 
   Future<dynamic> patch(String path, {Object? body}) {
     return _send('PATCH', path, body: body);
+  }
+
+  Future<dynamic> uploadFile(
+    String path, {
+    required String field,
+    required String filePath,
+    String? filename,
+  }) async {
+    final uri = Uri.parse('$baseUrl$path');
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Accept'] = 'application/json';
+    final token = await tokenStorage.readToken();
+
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    try {
+      final file = await http.MultipartFile.fromPath(
+        field,
+        filePath,
+        filename: filename,
+        contentType: _mediaTypeForPath(filename ?? filePath),
+      );
+      request.files.add(file);
+
+      final streamed = await _http.send(request).timeout(_uploadTimeout);
+      final response = await http.Response.fromStream(streamed)
+          .timeout(_uploadTimeout);
+
+      return await _handleResponse(response);
+    } on ApiException {
+      rethrow;
+    } on TimeoutException {
+      throw const ApiException(_networkMessage);
+    } on SocketException {
+      throw const ApiException(_networkMessage);
+    } on http.ClientException {
+      throw const ApiException(_networkMessage);
+    } on FormatException {
+      throw const ApiException('Respons server tidak valid');
+    } on FileSystemException {
+      throw const ApiException('File foto tidak dapat dibaca');
+    }
   }
 
   Future<dynamic> _send(
@@ -86,29 +131,7 @@ class ApiClient {
           response = await _http.get(uri, headers: headers).timeout(_timeout);
       }
 
-      if (response.statusCode == 401) {
-        await onUnauthorized?.call();
-      }
-
-      final decoded = response.body.isEmpty
-          ? null
-          : jsonDecode(response.body) as Map<String, dynamic>;
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return decoded?['data'];
-      }
-
-      final errors = (decoded?['errors'] as List?)
-              ?.whereType<Map<String, dynamic>>()
-              .map(ApiFieldError.fromJson)
-              .toList() ??
-          const <ApiFieldError>[];
-
-      throw ApiException(
-        decoded?['message'] as String? ?? 'Terjadi kesalahan pada server',
-        statusCode: response.statusCode,
-        errors: errors,
-      );
+      return await _handleResponse(response);
     } on ApiException {
       rethrow;
     } on TimeoutException {
@@ -119,6 +142,53 @@ class ApiClient {
       throw const ApiException(_networkMessage);
     } on FormatException {
       throw const ApiException('Respons server tidak valid');
+    }
+  }
+
+  Future<dynamic> _handleResponse(http.Response response) async {
+    if (response.statusCode == 401) {
+      await onUnauthorized?.call();
+    }
+
+    final decoded = response.body.isEmpty
+        ? null
+        : jsonDecode(response.body) as Map<String, dynamic>;
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return decoded?['data'];
+    }
+
+    final errors =
+        (decoded?['errors'] as List?)
+            ?.whereType<Map<String, dynamic>>()
+            .map(ApiFieldError.fromJson)
+            .toList() ??
+        const <ApiFieldError>[];
+
+    throw ApiException(
+      decoded?['message'] as String? ?? 'Terjadi kesalahan pada server',
+      statusCode: response.statusCode,
+      errors: errors,
+    );
+  }
+
+  static http.MediaType? _mediaTypeForPath(String path) {
+    final dotIndex = path.lastIndexOf('.');
+
+    if (dotIndex == -1) {
+      return null;
+    }
+
+    switch (path.substring(dotIndex + 1).toLowerCase()) {
+      case 'jpg':
+      case 'jpeg':
+        return http.MediaType('image', 'jpeg');
+      case 'png':
+        return http.MediaType('image', 'png');
+      case 'webp':
+        return http.MediaType('image', 'webp');
+      default:
+        return null;
     }
   }
 }

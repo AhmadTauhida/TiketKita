@@ -25,12 +25,4 @@ void main() {
     expect(validateConfirmPassword('Demo1234', 'Demo1234'), isNull);
     expect(validateConfirmPassword('Demo1234', 'Demo12345'), isNotNull);
   });
-
-  test('validateProfileImage opsional dan harus URL http/https', () {
-    expect(validateProfileImage(''), isNull);
-    expect(validateProfileImage('https://example.com/avatar.png'), isNull);
-    expect(validateProfileImage('http://example.com/avatar.png'), isNull);
-    expect(validateProfileImage('bukan-url'), isNotNull);
-    expect(validateProfileImage('ftp://example.com/avatar.png'), isNotNull);
-  });
 }

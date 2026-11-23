@@ -8,6 +8,32 @@ Semua perhitungan harga, stok, total, dan status dilakukan di backend. Akses dat
 
 Fase 6 selesai: seluruh endpoint MVP, tes backend, koleksi Postman, konfigurasi Vercel, dan README ini.
 
+## Perluasan scope: upload foto profil (Fase 1–4 selesai; bucket nyata terverifikasi)
+
+Upload foto profil disetujui pemilik produk pada 2026-11-23. **Fase 1–4 selesai**; endpoint dan UI Flutter tersedia. `npm test` 83 lulus. Upload nyata ke bucket `media` sudah diverifikasi dengan `service_role` legacy dan secret key baru (`sb_secret_...`): object dapat diunggah, URL publik merespons 200, dan object dapat dihapus. Endpoint Vercel masih 404 sampai perubahan di-commit/di-push dan di-redeploy. Uji perangkat juga masih menunggu pemilik produk. Rencana yang sudah diputuskan:
+
+- Endpoint `POST /api/v1/users/profile/photo`, privat, `multipart/form-data`, field `photo`.
+- Respons memakai envelope yang sama dan mengembalikan `data.user` terbaru.
+- `PUT /api/v1/users/profile` tetap tersedia untuk nama, telepon, dan `profileImage` URL.
+- File disimpan di bucket Supabase Storage publik `media`:
+  - `avatars/{userId}/{uuid}.{ext}`
+  - `events/{eventId}/{uuid}.{ext}` (disiapkan untuk poster event, belum dipakai)
+- MIME yang diizinkan: `image/jpeg`, `image/png`, `image/webp`.
+- Batas backend: avatar 2 MB, poster event 4 MB. Batas bucket 5 MB.
+- Validasi memakai MIME dan magic bytes. Nama file dibuat server.
+- Upload hanya dari backend memakai service-role key. Tidak memakai `supabase-js`, Data API `/rest/v1`, RLS, atau policy baru.
+
+Env yang diperlukan untuk bucket nyata:
+
+```env
+SUPABASE_URL="https://<project-ref>.supabase.co"
+SUPABASE_SECRET_KEY="sb_secret_..."
+SUPABASE_MEDIA_BUCKET="media"
+STORAGE_DRIVER="supabase"
+```
+
+`SUPABASE_SECRET_KEY` adalah secret key baru dari **Settings → API Keys → Publishable and secret API keys**. Ini pengganti `service_role`; `SUPABASE_SERVICE_ROLE_KEY` lama masih didukung sebagai fallback sampai awal 2027. Gunakan `STORAGE_DRIVER=memory` untuk tes atau pengembangan tanpa bucket nyata. Jangan menaruh nilai asli di `.env.example` atau repositori. Setelah kredensial diisi, uji `POST /api/v1/users/profile/photo` dengan file JPEG/PNG/WebP < 2 MB, lalu pastikan object muncul di `media/avatars/{userId}/`. Detail keputusan ada di `../DECISIONS.md`.
+
 ## Prasyarat
 
 - Node.js 22 LTS dan npm (lingkungan pengembangan saat ini memakai Node.js 24.19.0; lihat `../DECISIONS.md`)
@@ -49,6 +75,7 @@ cp .env.test.example .env.test
 - `DIRECT_URL`: direct connection atau session pooler port 5432, dipakai migrasi
 - `JWT_SECRET`: minimal 32 karakter acak
 - `JWT_EXPIRES_IN`, `BCRYPT_ROUNDS`, `BOOKING_EXPIRY_MINUTES`, `CORS_ORIGIN`
+- `STORAGE_DRIVER`: `memory` (default, tanpa bucket) atau `supabase`. Mode supabase memerlukan `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (atau `SUPABASE_SERVICE_ROLE_KEY` legacy), dan `SUPABASE_MEDIA_BUCKET`
 
 `.env.test` (tes):
 
@@ -113,7 +140,7 @@ Server mendengarkan di `0.0.0.0` dan tidak memanggil `listen` saat berjalan di V
 npm test
 ```
 
-Tes berjalan pada schema `test`, menjalankan `prisma migrate deploy` sekali di awal, dan mengosongkan tabel antar-tes. Saat ini 58 tes mencakup seluruh skenario wajib PRD 18.1: autentikasi, users, categories, events, bookings, konkurensi stok, pembayaran paralel, pembatalan, kedaluwarsa, tiket, dan isolasi data.
+Tes berjalan pada schema `test`, menjalankan `prisma migrate deploy` sekali di awal, dan mengosongkan tabel antar-tes. Saat ini 83 tes mencakup seluruh skenario wajib PRD 18.1 (autentikasi, users, categories, events, bookings, konkurensi stok, pembayaran paralel, pembatalan, kedaluwarsa, tiket, dan isolasi data), fondasi storage upload, dan endpoint foto profil. Tes selalu memakai driver storage `memory` meskipun `.env` memakai Supabase.
 
 ## Endpoint
 
@@ -124,6 +151,7 @@ Tes berjalan pada schema `test`, menjalankan `prisma migrate deploy` sekali di a
 | POST | `/api/v1/auth/login` | Publik |
 | GET | `/api/v1/users/profile` | Privat |
 | PUT | `/api/v1/users/profile` | Privat |
+| POST | `/api/v1/users/profile/photo` | Privat, multipart field `photo` |
 | GET | `/api/v1/categories` | Publik |
 | GET | `/api/v1/events` | Publik |
 | GET | `/api/v1/events/featured` | Publik |
@@ -159,10 +187,13 @@ Environment Vercel masih memakai placeholder `https://<nama-proyek>.vercel.app`;
 ## Deployment Vercel
 
 1. Buat project Vercel dari repositori ini dengan **Root Directory** `backend`.
-2. Tambahkan environment variable Production dan Preview: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `BCRYPT_ROUNDS`, `BOOKING_EXPIRY_MINUTES`, `CORS_ORIGIN`. `DIRECT_URL` tidak diperlukan runtime.
+2. Tambahkan environment variable Production dan Preview:
+   - Runtime utama: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `BCRYPT_ROUNDS`, `BOOKING_EXPIRY_MINUTES`, `CORS_ORIGIN`. `DIRECT_URL` tidak diperlukan runtime.
+   - Storage upload: `STORAGE_DRIVER=supabase`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (`sb_secret_...`), dan `SUPABASE_MEDIA_BUCKET=media`.
+   - Jika masih memakai kunci legacy, ganti `SUPABASE_SECRET_KEY` dengan `SUPABASE_SERVICE_ROLE_KEY`. Jangan mengisi keduanya jika tidak perlu; kode memprioritaskan `SUPABASE_SECRET_KEY`.
 3. Build memakai `postinstall` untuk `prisma generate`. Migration **tidak** dijalankan saat build; jalankan `npm run prisma:deploy` dari komputer lokal.
 4. `vercel.json` mengarahkan seluruh request ke `src/server.js`.
-5. Verifikasi setelah deploy: `GET /health`, `GET /api/v1/categories`, `GET /api/v1/events`, lalu alur register, login, booking, dan pembayaran lewat Postman dengan environment Vercel.
+5. Verifikasi setelah deploy: `GET /health`, `GET /api/v1/categories`, `GET /api/v1/events`, alur register, login, booking, dan pembayaran, lalu `POST /api/v1/users/profile/photo` dengan file JPEG/PNG/WebP < 2 MB.
 
 Project Supabase gratis dapat dijeda bila lama tidak aktif; aktifkan kembali dan uji API sebelum asistensi atau responsi.
 

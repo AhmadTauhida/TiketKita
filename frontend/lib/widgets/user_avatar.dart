@@ -7,11 +7,13 @@ class UserAvatar extends StatelessWidget {
     super.key,
     required this.name,
     this.imageUrl,
+    this.imageProvider,
     this.size = 80,
   });
 
   final String name;
   final String? imageUrl;
+  final ImageProvider? imageProvider;
   final double size;
 
   String get _initials {
@@ -48,25 +50,33 @@ class UserAvatar extends StatelessWidget {
       ),
     );
 
-    return ClipOval(
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: imageUrl == null || imageUrl!.isEmpty
-            ? fallback
-            : Image.network(
-                imageUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => fallback,
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) {
-                    return child;
-                  }
+    final Widget content;
 
-                  return fallback;
-                },
-              ),
-      ),
+    if (imageProvider != null) {
+      content = Image(
+        image: imageProvider!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback,
+      );
+    } else if (imageUrl == null || imageUrl!.isEmpty) {
+      content = fallback;
+    } else {
+      content = Image.network(
+        imageUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) {
+            return child;
+          }
+
+          return fallback;
+        },
+      );
+    }
+
+    return ClipOval(
+      child: SizedBox(width: size, height: size, child: content),
     );
   }
 }

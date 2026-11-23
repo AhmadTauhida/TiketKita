@@ -52,10 +52,7 @@ class AuthState extends ChangeNotifier {
   }
 
   Future<void> login({required String email, required String password}) async {
-    final session = await _authService.login(
-      email: email,
-      password: password,
-    );
+    final session = await _authService.login(email: email, password: password);
 
     await _tokenStorage.saveToken(session.token);
     _user = session.user;
@@ -102,11 +99,24 @@ class AuthState extends ChangeNotifier {
     required String name,
     required String phone,
     String? profileImage,
+    bool clearProfileImage = false,
   }) async {
     _user = await _authService.updateProfile(
       name: name,
       phone: phone,
       profileImage: profileImage,
+      clearProfileImage: clearProfileImage,
+    );
+    notifyListeners();
+  }
+
+  Future<void> uploadProfilePhoto({
+    required String filePath,
+    String? filename,
+  }) async {
+    _user = await _authService.uploadProfilePhoto(
+      filePath: filePath,
+      filename: filename,
     );
     notifyListeners();
   }

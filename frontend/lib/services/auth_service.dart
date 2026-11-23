@@ -47,14 +47,31 @@ class AuthService {
     required String name,
     required String phone,
     String? profileImage,
+    bool clearProfileImage = false,
   }) async {
-    final data = await _api.put(
-      '/users/profile',
-      body: {
-        'name': name,
-        'phone': phone,
-        'profileImage': profileImage,
-      },
+    final body = <String, Object?>{'name': name, 'phone': phone};
+
+    if (clearProfileImage) {
+      body['profileImage'] = null;
+    } else if (profileImage != null) {
+      body['profileImage'] = profileImage;
+    }
+
+    final data =
+        await _api.put('/users/profile', body: body) as Map<String, dynamic>;
+
+    return User.fromJson(data['user'] as Map<String, dynamic>);
+  }
+
+  Future<User> uploadProfilePhoto({
+    required String filePath,
+    String? filename,
+  }) async {
+    final data = await _api.uploadFile(
+      '/users/profile/photo',
+      field: 'photo',
+      filePath: filePath,
+      filename: filename,
     ) as Map<String, dynamic>;
 
     return User.fromJson(data['user'] as Map<String, dynamic>);

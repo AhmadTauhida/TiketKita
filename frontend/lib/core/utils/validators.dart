@@ -79,21 +79,3 @@ String? validateConfirmPassword(String? value, String password) {
 
   return null;
 }
-
-String? validateProfileImage(String? value) {
-  final text = value?.trim() ?? '';
-
-  if (text.isEmpty) {
-    return null;
-  }
-
-  final uri = Uri.tryParse(text);
-
-  if (uri == null ||
-      (uri.scheme != 'http' && uri.scheme != 'https') ||
-      uri.host.isEmpty) {
-    return 'URL foto tidak valid';
-  }
-
-  return null;
-}
