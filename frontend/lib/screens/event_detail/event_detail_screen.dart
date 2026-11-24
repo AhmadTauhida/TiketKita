@@ -41,8 +41,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     });
 
     try {
-      final event =
-          await context.read<EventService>().getEventDetail(widget.eventId);
+      final event = await context.read<EventService>().getEventDetail(
+        widget.eventId,
+      );
 
       if (!mounted) {
         return;
@@ -90,6 +91,41 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     }
 
     return _totalAmount == 0 ? 'Gratis' : formatRupiah(_totalAmount);
+  }
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126,
+    0.7152,
+    0.0722,
+    0,
+    0,
+    0.2126,
+    0.7152,
+    0.0722,
+    0,
+    0,
+    0.2126,
+    0.7152,
+    0.0722,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+  ]);
+
+  Color _statusColor(EventDetail event) {
+    if (event.isCancelled) {
+      return AppColors.error;
+    }
+
+    if (event.isOngoing) {
+      return AppColors.success;
+    }
+
+    return const Color(0xFF4B5563);
   }
 
   String _disabledLabel(EventDetail event) {
@@ -151,10 +187,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? _ErrorState(message: _error!, onRetry: _load)
-              : event == null
-                  ? const SizedBox.shrink()
-                  : _buildContent(event),
+          ? _ErrorState(message: _error!, onRetry: _load)
+          : event == null
+          ? const SizedBox.shrink()
+          : _buildContent(event),
       bottomNavigationBar: event == null || _loading || _error != null
           ? null
           : _buildBottomBar(event),
@@ -169,7 +205,29 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       children: [
         AspectRatio(
           aspectRatio: 16 / 9,
-          child: _Poster(imageUrl: event.imageUrl),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (event.isUnavailable)
+                ColorFiltered(
+                  colorFilter: _greyscale,
+                  child: _Poster(imageUrl: event.imageUrl),
+                )
+              else
+                _Poster(imageUrl: event.imageUrl),
+              if (event.isUnavailable)
+                ColoredBox(color: Colors.black.withValues(alpha: 0.12)),
+              if (event.statusLabel != null)
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: _StatusPill(
+                    label: event.statusLabel!,
+                    color: _statusColor(event),
+                  ),
+                ),
+            ],
+          ),
         ),
         Padding(
           padding: const EdgeInsets.all(16),
@@ -178,15 +236,21 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             children: [
               Text(
                 event.title,
-                style: theme.textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(999),
@@ -199,65 +263,52 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       ),
                     ),
                   ),
-                  if (event.isSoldOut) ...[
-                    const SizedBox(width: 8),
+                  if (event.statusLabel != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.error.withValues(alpha: 0.1),
+                        color: _statusColor(event).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        'Habis',
+                        event.statusLabel!,
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.error,
+                          color: _statusColor(event),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                  ],
                 ],
               ),
               const SizedBox(height: 12),
-              _InfoRow(
-                icon: Icons.business_rounded,
-                text: event.organizer,
-              ),
+              _InfoRow(icon: Icons.business_rounded, text: event.organizer),
               const SizedBox(height: 6),
               _InfoRow(
                 icon: Icons.calendar_today_rounded,
                 text: formatEventDate(event.eventDate),
               ),
               const SizedBox(height: 6),
-              _InfoRow(
-                icon: Icons.location_on_outlined,
-                text: event.location,
-              ),
+              _InfoRow(icon: Icons.location_on_outlined, text: event.location),
               if (event.address != null && event.address!.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Padding(
                   padding: const EdgeInsets.only(left: 22),
-                  child: Text(
-                    event.address!,
-                    style: theme.textTheme.bodySmall,
-                  ),
+                  child: Text(event.address!, style: theme.textTheme.bodySmall),
                 ),
               ],
               const SizedBox(height: 16),
-              Text(
-                event.description,
-                style: theme.textTheme.bodyMedium,
-              ),
+              Text(event.description, style: theme.textTheme.bodyMedium),
               const SizedBox(height: 24),
               const Divider(),
               const SizedBox(height: 16),
               Text(
                 'Pilih Tiket',
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               if (event.ticketTypes.isEmpty)
@@ -314,9 +365,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                 Text(
                   _totalLabel,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -332,6 +383,29 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -376,8 +450,9 @@ class _TicketTypeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final soldOut = ticketType.availableStock == 0;
-    final maxQuantity =
-        ticketType.availableStock < 10 ? ticketType.availableStock : 10;
+    final maxQuantity = ticketType.availableStock < 10
+        ? ticketType.availableStock
+        : 10;
 
     return Card(
       child: Padding(
@@ -394,8 +469,9 @@ class _TicketTypeCard extends StatelessWidget {
                     children: [
                       Text(
                         ticketType.name,
-                        style: theme.textTheme.titleSmall
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       if (ticketType.description != null &&
                           ticketType.description!.isNotEmpty) ...[
@@ -426,7 +502,8 @@ class _TicketTypeCard extends StatelessWidget {
                 Text(
                   soldOut ? 'Habis' : 'Sisa ${ticketType.availableStock} tiket',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: soldOut ? theme.colorScheme.error : null,
+                    color: soldOut ? theme.colorScheme.onSurfaceVariant : null,
+                    fontWeight: soldOut ? FontWeight.bold : null,
                   ),
                 ),
                 const Spacer(),

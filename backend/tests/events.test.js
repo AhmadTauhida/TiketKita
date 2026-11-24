@@ -55,6 +55,44 @@ describe('GET /api/v1/events', () => {
     expect(res.body.data.items[0].status).toBe('CANCELLED');
   });
 
+  it('menyembunyikan acara yang tanggalnya sudah lewat meski statusnya masih UPCOMING', async () => {
+    const category = await setupCategory();
+    const pastEvent = await createEvent({
+      categoryId: category.id,
+      title: 'Acara Terlewat',
+      status: 'UPCOMING',
+      eventDate: pastDate(2),
+      endDate: pastDate(1),
+    });
+
+    const list = await request(app).get('/api/v1/events');
+    expect(list.status).toBe(200);
+    expect(list.body.data.pagination.totalItems).toBe(0);
+
+    const detail = await request(app).get(`/api/v1/events/${pastEvent.id}`);
+    expect(detail.status).toBe(200);
+    expect(detail.body.data.event.status).toBe('COMPLETED');
+    expect(detail.body.data.event.canBook).toBe(false);
+  });
+
+  it('menandai acara yang sedang berlangsung sebagai ONGOING', async () => {
+    const category = await setupCategory();
+    const ongoing = await createEvent({
+      categoryId: category.id,
+      title: 'Acara Berlangsung',
+      status: 'UPCOMING',
+      eventDate: pastDate(1),
+      endDate: futureDate(1),
+    });
+
+    const res = await request(app).get('/api/v1/events');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.items).toHaveLength(1);
+    expect(res.body.data.items[0].id).toBe(ongoing.id);
+    expect(res.body.data.items[0].status).toBe('ONGOING');
+  });
+
   it('mencari berdasarkan judul tanpa sensitif huruf besar-kecil', async () => {
     const category = await setupCategory();
     await createEvent({ categoryId: category.id, title: 'Seminar AI 2026' });

@@ -10,9 +10,46 @@ class EventCard extends StatelessWidget {
   final EventSummary event;
   final VoidCallback onTap;
 
+  Color get _statusColor {
+    if (event.isCancelled) {
+      return AppColors.error;
+    }
+
+    if (event.isOngoing) {
+      return AppColors.success;
+    }
+
+    return const Color(0xFF4B5563);
+  }
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126,
+    0.7152,
+    0.0722,
+    0,
+    0,
+    0.2126,
+    0.7152,
+    0.0722,
+    0,
+    0,
+    0.2126,
+    0.7152,
+    0.0722,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+  ]);
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final unavailable = event.isUnavailable;
+    final poster = _Poster(imageUrl: event.imageUrl);
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -23,7 +60,26 @@ class EventCard extends StatelessWidget {
           children: [
             AspectRatio(
               aspectRatio: 16 / 9,
-              child: _Poster(imageUrl: event.imageUrl),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (unavailable)
+                    ColorFiltered(colorFilter: _greyscale, child: poster)
+                  else
+                    poster,
+                  if (unavailable)
+                    ColoredBox(color: Colors.black.withValues(alpha: 0.12)),
+                  if (event.statusLabel != null)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: _StatusPill(
+                        label: event.statusLabel!,
+                        color: _statusColor,
+                      ),
+                    ),
+                ],
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(12),
@@ -34,8 +90,9 @@ class EventCard extends StatelessWidget {
                     event.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Row(
@@ -48,10 +105,7 @@ class EventCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          formatEventDate(
-                            event.eventDate,
-                            includeTime: false,
-                          ),
+                          formatEventDate(event.eventDate, includeTime: false),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall,
@@ -88,8 +142,8 @@ class EventCard extends StatelessWidget {
                             isSoldOut: event.isSoldOut,
                           ),
                           style: theme.textTheme.titleSmall?.copyWith(
-                            color: event.isSoldOut
-                                ? theme.colorScheme.error
+                            color: unavailable
+                                ? theme.colorScheme.onSurfaceVariant
                                 : AppColors.primary,
                             fontWeight: FontWeight.bold,
                           ),
@@ -106,6 +160,29 @@ class EventCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
       ),
     );
   }

@@ -27,6 +27,40 @@ class EventSummary {
   final int? minPrice;
   final bool isSoldOut;
 
+  bool get isCancelled => status == 'CANCELLED';
+
+  bool get isCompleted =>
+      status == 'COMPLETED' ||
+      (!isCancelled &&
+          (endDate?.isBefore(DateTime.now()) ??
+              eventDate.isBefore(DateTime.now())));
+
+  bool get isOngoing => status == 'ONGOING' && !isCompleted;
+
+  bool get isPast => isCompleted;
+
+  bool get isUnavailable => isSoldOut || isCompleted || isCancelled;
+
+  String? get statusLabel {
+    if (isCancelled) {
+      return 'Acara Dibatalkan';
+    }
+
+    if (isCompleted) {
+      return 'Acara Selesai';
+    }
+
+    if (isOngoing) {
+      return 'Sedang Berlangsung';
+    }
+
+    if (isSoldOut) {
+      return 'Tiket Habis';
+    }
+
+    return null;
+  }
+
   factory EventSummary.fromJson(Map<String, dynamic> json) {
     return EventSummary(
       id: json['id'] as String,

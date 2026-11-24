@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '../../config/database.js';
 import { NotFoundError } from '../../utils/errors.js';
 import { expireOverdueBookings } from '../../utils/expire-bookings.js';
+import { syncEventStatuses } from '../../utils/sync-event-statuses.js';
 
 const uuidSchema = z.uuid();
 
@@ -54,37 +55,45 @@ function buildWhere({ q, categoryId, status }) {
 export async function listEvents({ q, categoryId, status, page, limit }) {
   const where = buildWhere({ q, categoryId, status });
 
-  const [events, totalItems] = await prisma.$transaction([
-    prisma.event.findMany({
-      where,
-      include: summaryInclude,
-      orderBy: [{ eventDate: 'asc' }, { id: 'asc' }],
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-    prisma.event.count({ where }),
-  ]);
+  return prisma.$transaction(async (tx) => {
+    await syncEventStatuses(tx);
 
-  return {
-    items: events,
-    pagination: {
-      page,
-      limit,
-      totalItems,
-      totalPages: Math.ceil(totalItems / limit),
-    },
-  };
+    const [events, totalItems] = await Promise.all([
+      tx.event.findMany({
+        where,
+        include: summaryInclude,
+        orderBy: [{ eventDate: 'asc' }, { id: 'asc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      tx.event.count({ where }),
+    ]);
+
+    return {
+      items: events,
+      pagination: {
+        page,
+        limit,
+        totalItems,
+        totalPages: Math.ceil(totalItems / limit),
+      },
+    };
+  });
 }
 
 export async function listFeaturedEvents() {
-  return prisma.event.findMany({
-    where: {
-      status: 'UPCOMING',
-      eventDate: { gt: new Date() },
-    },
-    include: summaryInclude,
-    orderBy: [{ eventDate: 'asc' }, { id: 'asc' }],
-    take: 5,
+  return prisma.$transaction(async (tx) => {
+    await syncEventStatuses(tx);
+
+    return tx.event.findMany({
+      where: {
+        status: 'UPCOMING',
+        eventDate: { gt: new Date() },
+      },
+      include: summaryInclude,
+      orderBy: [{ eventDate: 'asc' }, { id: 'asc' }],
+      take: 5,
+    });
   });
 }
 
@@ -96,6 +105,7 @@ export async function getEventDetail(eventId) {
   return prisma.$transaction(
     async (tx) => {
       await expireOverdueBookings(tx);
+      await syncEventStatuses(tx);
 
       const event = await tx.event.findUnique({
         where: { id: eventId },
