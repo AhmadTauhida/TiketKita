@@ -27,7 +27,7 @@ Upload foto profil dari galeri disetujui pemilik produk pada 2026-11-23. **Fase 
 - `updateProfile` hanya mengirim `profileImage` jika diisi atau `clearProfileImage: true`; update nama/telepon tidak menghapus foto hasil upload.
 - Tes mencakup multipart, 401, error 422, pemetaan user, perilaku `updateProfile`, dan tampilan Edit Profil tanpa input URL.
 
-Status Fase 5: `flutter analyze` bersih, `flutter test` 15 tes lulus, smoke upload backend mode `memory` berhasil, upload nyata ke bucket `media` berhasil (URL publik 200 dan object bisa dihapus), dan APK rilis berhasil dibangun (≈53,6 MB). Uji end-to-end di emulator/perangkat dan deploy Vercel masih menunggu perangkat yang terhubung serta environment produksi.
+Status Fase 5: `flutter analyze` bersih, `flutter test` 15 tes lulus, smoke upload backend mode `memory` berhasil, upload nyata ke bucket `media` berhasil (URL publik 200 dan object bisa dihapus), endpoint produksi Vercel sudah diverifikasi setelah merge ke `main`, dan APK rilis berhasil dibangun (≈53,6 MB). Uji end-to-end di emulator/perangkat masih menunggu perangkat yang terhubung.
 
 Detail keputusan ada di `../DECISIONS.md`.
 
@@ -97,5 +97,5 @@ lib/
 ## Catatan
 
 - `API_BASE_URL` wajib lewat `--dart-define`; tidak ada URL hardcode selain default emulator di `AppConstants`.
-- Fitur di luar MVP (admin event, upload poster, validasi QR, refund) belum tersedia. Upload foto profil sudah diimplementasikan sampai UI dan bucket nyata sudah diverifikasi; uji perangkat dan deploy Vercel masih menunggu.
+- Fitur di luar MVP (admin event, upload poster, validasi QR, refund) belum tersedia. Upload foto profil sudah diimplementasikan sampai UI, bucket nyata dan endpoint produksi sudah diverifikasi; uji perangkat masih menunggu.
 - Uji manual end-to-end di emulator masih menjadi tugas pemilik produk sebelum responsi.

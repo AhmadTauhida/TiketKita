@@ -389,9 +389,10 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 ## [2026-11-23] Fase 5 verifikasi upload foto profil
 - **Konteks:** Fase 5 meminta integrasi bucket nyata, uji end-to-end, dokumentasi, dan build APK.
 - **Pilihan/verifikasi:** Bucket `media` diverifikasi lewat metadata storage: publik, limit 5 MB, MIME `image/jpeg`/`image/png`/`image/webp`, prefix root `avatars/` dan `events/`. Upload nyata lewat adapter `STORAGE_DRIVER=supabase` berhasil: object `avatars/{uuid}/{uuid}.jpg` dapat diunggah, URL publik merespons HTTP 200, object dapat dihapus, dan bucket kembali hanya berisi placeholder. `npm test` → 83 tes lulus. `flutter analyze` bersih; `flutter test` → 15 tes lulus. Smoke test HTTP dengan `STORAGE_DRIVER=memory` pada schema `test` berhasil: register → login → upload multipart → URL tersimpan di profil. `flutter build apk --release --dart-define=API_BASE_URL=https://tiketkita-three.vercel.app/api/v1` berhasil (≈53,6 MB).
-- **Belum terverifikasi:** Uji end-to-end di emulator/perangkat belum dilakukan karena tidak ada perangkat ADB; environment dan deployment Vercel untuk endpoint baru belum diperbarui; upload nyata memakai service_role legacy (dukungan secret key baru sudah diuji unit, belum diuji ke bucket).
+- **Tambahan verifikasi produksi:** Setelah merge ke `main` dan redeploy Vercel, endpoint `POST /api/v1/users/profile/photo` merespons 401 tanpa token (route tersedia). Uji nyata memakai user sementara di produksi berhasil: register → login → upload → URL publik 200 → `GET /users/profile` cocok. Object dan user sementara dihapus; bucket kembali hanya berisi placeholder dan tidak ada user uji tersisa.
+- **Belum terverifikasi:** Uji end-to-end di emulator/perangkat belum dilakukan karena tidak ada perangkat ADB yang terhubung.
 - **Dampak:** `README.md`, `frontend/README.md`, `DECISIONS.md`.
-- **Status:** menunggu pemilik produk untuk uji perangkat dan deploy Vercel. Langkah manual: hubungkan emulator/perangkat, tambahkan environment storage ke Vercel, deploy backend, lalu uji upload nyata dari APK.
+- **Status:** backend dan integrasi produksi terverifikasi; menunggu uji perangkat oleh pemilik produk.
 
 ## [2026-11-23] Tes storage tidak boleh menyentuh bucket nyata
 - **Konteks:** `.env` lokal sudah memakai `STORAGE_DRIVER=supabase`, sedangkan `.env.test` tidak memuat variabel itu. Karena `dotenv` tidak mengosongkan variabel yang tidak ada, tes sempat memakai bucket nyata dan meninggalkan dua object uji.
@@ -409,7 +410,27 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 
 ## [2026-11-23] Verifikasi secret key Supabase baru
 - **Konteks:** Pemilik produk sudah membuat secret key baru, mengganti environment, dan melakukan redeploy Vercel.
-- **Verifikasi:** `.env` lokal memakai `STORAGE_DRIVER=supabase` dan `SUPABASE_SECRET_KEY` bertipe `sb_secret_...`. Adapter storage berhasil mengunggah object, URL publik merespons HTTP 200, object berhasil dihapus, dan bucket kembali hanya berisi placeholder `avatars/` dan `events/`. `POST https://tiketkita-three.vercel.app/api/v1/users/profile/photo` masih merespons 404 karena perubahan kode belum di-commit/di-push; Vercel hanya menerima commit yang sudah ada di branch deployment.
-- **Alasan:** Memastikan kunci baru benar-benar bekerja sebelum menyatakan integrasi selesai.
+- **Verifikasi:** `.env` lokal dan environment Vercel memakai `STORAGE_DRIVER=supabase` serta `SUPABASE_SECRET_KEY` bertipe `sb_secret_...`. Adapter storage lokal berhasil mengunggah object, URL publik merespons HTTP 200, object berhasil dihapus, dan bucket kembali hanya berisi placeholder. Setelah merge ke `main` dan redeploy, endpoint produksi tidak lagi 404: upload nyata lewat Vercel berhasil, URL publik merespons 200, profil mengembalikan URL yang sama, lalu object dan user sementara dibersihkan.
+- **Alasan:** Memastikan secret key baru dan environment produksi benar-benar bekerja.
 - **Dampak:** Tidak ada perubahan kode; hanya verifikasi.
-- **Status:** secret key lokal terverifikasi. Deployment Vercel menunggu commit/push ke branch yang dipakai Vercel (saat ini branch lokal `feat/frontend`; `origin/main` masih commit lama), lalu redeploy.
+- **Status:** secret key dan deployment produksi terverifikasi. Sisa: uji end-to-end di emulator/perangkat.
+
+## [2026-11-24] Rencana pintasan kategori dari Home ke Explore
+- **Konteks:** Ikon kategori di Home saat ini hanya informatif, tetapi bentuknya memberi kesan dapat diketuk. Explore sudah menyediakan filter kategori berupa chip. PRD 7.1 dan 7.5 menetapkan daftar kategori berikon di Home serta filter kategori di Explore, tanpa melarang pintasan langsung.
+- **Pilihan:** Pertahankan ikon kategori di Home dan jadikan tiap item tombol pintasan. Ketukan membuka tab Explore dengan kategori terkait sudah terpilih; filter chip di Explore tetap tersedia untuk mengganti kategori atau memilih “Semua”.
+- **Alasan:** Perilaku ini memenuhi ekspektasi dari tampilan yang tampak interaktif dan memberi akses cepat tanpa menghilangkan kontrol filter yang sudah ada di Explore.
+- **Rencana implementasi:**
+  1. Tambahkan aksi ketuk pada `CategoryItem` dengan feedback interaksi dan semantik tombol yang dapat diakses.
+  2. Teruskan ID kategori terpilih dari Home melalui `MainShell` ke `ExploreScreen`; navigasi harus bekerja walaupun Explore sudah pernah dibuka di `IndexedStack`.
+  3. Saat pintasan dipakai, Explore memilih kategori tersebut, mengosongkan kata kunci pencarian lama agar tidak menyembunyikan hasil kategori, menutup fokus keyboard, lalu memuat ulang daftar dari halaman pertama. Chip kategori terpilih harus terlihat aktif.
+  4. Pertahankan filter kategori di Explore agar pengguna dapat mengganti kategori atau kembali ke “Semua”.
+  5. Verifikasi dengan tes bahwa mengetuk kategori menampilkan Explore dengan kategori yang benar dan hasil diperbarui; jalankan `flutter analyze` dan `flutter test`.
+- **Dampak:** `frontend/lib/widgets/category_item.dart`, `frontend/lib/screens/home/home_screen.dart`, `frontend/lib/screens/main_shell.dart`, `frontend/lib/screens/explore/explore_screen.dart`, serta tes widget/navigasi terkait.
+- **Status:** diputuskan pemilik produk dan selesai diimplementasikan. Pintasan memakai `CategoryShortcutRequest` dengan revision agar pilihan kategori baru tetap diterapkan pada `ExploreScreen` yang dipertahankan oleh `IndexedStack`; pencarian lama dikosongkan dan filter kategori di-apply ulang dari halaman pertama. Terverifikasi: `flutter analyze` bersih dan `flutter test` 16 lulus, termasuk alur ketuk kategori → Explore terfilter.
+
+## [2026-11-24] Sinkronisasi status acara dan penanda visual kartu
+- **Konteks:** PRD D-14 menyembunyikan `COMPLETED`/`CANCELLED` dari daftar default dan PRD 13.5 memakai `status = UPCOMING` + tanggal untuk `canBook`, tetapi tidak mengatur siapa yang memperbarui `Event.status` saat waktu berjalan. Data seed yang dibuat beberapa hari lalu bisa tetap `UPCOMING`/`ONGOING` walau tanggalnya sudah lewat, sehingga acara lampau masih tampil. PRD juga belum mengatur tampilan kartu untuk acara habis/lewat.
+- **Pilihan:** Menambahkan `syncEventStatuses(tx)` yang dipanggil sebelum daftar acara, featured, dan detail: `UPCOMING`/`ONGOING` yang `endDate` (atau `eventDate` bila `endDate` null) sudah lewat menjadi `COMPLETED`; `UPCOMING` dengan `eventDate <= sekarang < endDate` menjadi `ONGOING`. Seed tidak diubah. Di Flutter, `EventSummary`/`EventDetail` mendapat status turunan, kartu dan poster detail diberi filter abu-abu serta label status (`Acara Selesai`, `Sedang Berlangsung`, `Acara Dibatalkan`, `Tiket Habis`), dan warna harga untuk acara tidak tersedia memakai warna netral, bukan merah.
+- **Alasan:** Status tetap konsisten dengan waktu tanpa menunggu job terjadwal, daftar default kembali sesuai D-14, dan pengguna tetap dapat mengenali acara yang tidak dapat dipesan saat status ditampilkan eksplisit.
+- **Dampak:** `backend/src/utils/sync-event-statuses.js`, `backend/src/modules/events/service.js`, `backend/tests/events.test.js`, `frontend/lib/models/event_summary.dart`, `frontend/lib/models/event_detail.dart`, `frontend/lib/widgets/event_card.dart`, `frontend/lib/screens/event_detail/event_detail_screen.dart`, `frontend/test/event_summary_test.dart`.
+- **Status:** diputuskan agent.

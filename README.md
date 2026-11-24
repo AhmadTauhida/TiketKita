@@ -20,7 +20,7 @@ MVP selesai dan teruji:
 
 ### Perluasan scope (disetujui 2026-11-23)
 
-Upload foto profil disetujui masuk scope. **Fase 1–4 selesai**; Fase 5 sudah memverifikasi upload nyata ke bucket `media` (upload, URL publik 200, hapus object), `npm test` 83 lulus, `flutter analyze` bersih, `flutter test` 15 lulus, smoke upload mode `memory` berhasil, dan APK rilis berhasil dibangun. **Uji emulator/perangkat dan deploy Vercel untuk endpoint baru masih menunggu pemilik produk** karena tidak ada perangkat ADB dan perubahan kode belum di-commit/di-push; endpoint produksi masih 404. Upload nyata dengan secret key baru sudah diverifikasi lokal. Detail ada di [DECISIONS.md](DECISIONS.md). PRD masih menyebut upload file di luar MVP sampai pemilik produk merevisinya.
+Upload foto profil disetujui masuk scope. **Fase 1–4 selesai**; Fase 5 sudah memverifikasi upload nyata ke bucket `media` (upload, URL publik 200, hapus object), endpoint produksi Vercel setelah merge ke `main` (upload sukses, URL publik 200, profil cocok), `npm test` 83 lulus, `flutter analyze` bersih, `flutter test` 15 lulus, smoke upload mode `memory` berhasil, dan APK rilis berhasil dibangun. **Uji emulator/perangkat masih menunggu pemilik produk** karena tidak ada perangkat ADB. Detail ada di [DECISIONS.md](DECISIONS.md). PRD masih menyebut upload file di luar MVP sampai pemilik produk merevisinya.
 
 ## API Produksi
 
