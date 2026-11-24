@@ -14,9 +14,14 @@ import '../../widgets/category_item.dart';
 import '../../widgets/event_card.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.onSearchTap});
+  const HomeScreen({
+    super.key,
+    required this.onSearchTap,
+    required this.onCategoryTap,
+  });
 
   final VoidCallback onSearchTap;
+  final ValueChanged<String> onCategoryTap;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -118,7 +123,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemCount: _categories.length,
                   separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (context, index) {
-                    return CategoryItem(category: _categories[index]);
+                    final category = _categories[index];
+                    return CategoryItem(
+                      category: category,
+                      onTap: () => widget.onCategoryTap(category.id),
+                    );
                   },
                 ),
               ),

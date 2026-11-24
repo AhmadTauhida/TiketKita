@@ -11,10 +11,21 @@ import '../../routes/app_routes.dart';
 import '../../services/event_service.dart';
 import '../../widgets/event_card.dart';
 
+class CategoryShortcutRequest {
+  const CategoryShortcutRequest({
+    required this.categoryId,
+    required this.revision,
+  });
+
+  final String categoryId;
+  final int revision;
+}
+
 class ExploreScreen extends StatefulWidget {
-  const ExploreScreen({super.key, this.searchFocusNode});
+  const ExploreScreen({super.key, this.searchFocusNode, this.categoryShortcut});
 
   final FocusNode? searchFocusNode;
+  final CategoryShortcutRequest? categoryShortcut;
 
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();
@@ -38,6 +49,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   bool _hasMore = true;
   int _page = 1;
   int _requestId = 0;
+  int _appliedCategoryShortcutRevision = 0;
 
   @override
   void initState() {
@@ -56,6 +68,24 @@ class _ExploreScreenState extends State<ExploreScreen> {
       _focusNode.dispose();
     }
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant ExploreScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final request = widget.categoryShortcut;
+    if (request == null ||
+        request.revision == _appliedCategoryShortcutRevision) {
+      return;
+    }
+
+    _appliedCategoryShortcutRevision = request.revision;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _applyCategoryShortcut(request.categoryId);
+      }
+    });
   }
 
   Future<void> _loadCategories() async {
@@ -173,6 +203,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
       return;
     }
 
+    setState(() => _selectedCategoryId = categoryId);
+    _load(reset: true);
+  }
+
+  void _applyCategoryShortcut(String categoryId) {
+    _debounce?.cancel();
+    _searchController.clear();
+    _focusNode.unfocus();
     setState(() => _selectedCategoryId = categoryId);
     _load(reset: true);
   }
