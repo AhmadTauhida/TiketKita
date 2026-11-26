@@ -13,15 +13,19 @@ class EventService {
     String? q,
     String? categoryId,
     String? status,
+    String sort = 'date_asc',
+    String? date,
     int page = 1,
     int limit = 10,
   }) async {
     final query = <String, String>{
       'page': '$page',
       'limit': '$limit',
+      'sort': sort,
       if (q != null && q.trim().isNotEmpty) 'q': q.trim(),
       if (categoryId != null && categoryId.isNotEmpty) 'categoryId': categoryId,
       if (status != null && status.isNotEmpty) 'status': status,
+      if (date != null && date.isNotEmpty) 'date': date,
     };
 
     final data =

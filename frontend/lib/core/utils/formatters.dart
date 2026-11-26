@@ -35,6 +35,14 @@ String formatEventDate(
   return '${DateFormat(pattern, 'id_ID').format(wib)} WIB';
 }
 
+String formatDateOnly(DateTime value) {
+  return DateFormat('EEE, d MMM yyyy', 'id_ID').format(value);
+}
+
+String formatDateQuery(DateTime value) {
+  return DateFormat('yyyy-MM-dd').format(value);
+}
+
 String formatCountdown(Duration duration) {
   final totalSeconds = duration.isNegative ? 0 : duration.inSeconds;
   final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');

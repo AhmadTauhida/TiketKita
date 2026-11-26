@@ -33,7 +33,7 @@ const detailInclude = {
   },
 };
 
-function buildWhere({ q, categoryId, status }) {
+function buildWhere({ q, categoryId, status, date }) {
   const where = {};
 
   if (q) {
@@ -47,13 +47,34 @@ function buildWhere({ q, categoryId, status }) {
     where.categoryId = categoryId;
   }
 
+  if (date) {
+    const dayStart = new Date(`${date}T00:00:00+07:00`);
+    const dayEnd = new Date(`${date}T23:59:59.999+07:00`);
+
+    where.AND = [
+      { eventDate: { lte: dayEnd } },
+      {
+        OR: [
+          { eventDate: { gte: dayStart } },
+          { endDate: { gte: dayStart } },
+        ],
+      },
+    ];
+  }
+
   where.status = status ?? { in: ['UPCOMING', 'ONGOING'] };
 
   return where;
 }
 
-export async function listEvents({ q, categoryId, status, page, limit }) {
-  const where = buildWhere({ q, categoryId, status });
+function buildOrderBy(sort) {
+  return sort === 'date_desc'
+    ? [{ eventDate: 'desc' }, { id: 'asc' }]
+    : [{ eventDate: 'asc' }, { id: 'asc' }];
+}
+
+export async function listEvents({ q, categoryId, status, sort, date, page, limit }) {
+  const where = buildWhere({ q, categoryId, status, date });
 
   return prisma.$transaction(async (tx) => {
     await syncEventStatuses(tx);
@@ -62,7 +83,7 @@ export async function listEvents({ q, categoryId, status, page, limit }) {
       tx.event.findMany({
         where,
         include: summaryInclude,
-        orderBy: [{ eventDate: 'asc' }, { id: 'asc' }],
+        orderBy: buildOrderBy(sort),
         skip: (page - 1) * limit,
         take: limit,
       }),

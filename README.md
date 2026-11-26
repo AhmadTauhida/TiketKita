@@ -12,15 +12,15 @@ Aplikasi Android untuk mencari acara, memesan tiket, membayar secara simulasi, d
 MVP selesai dan teruji:
 
 - Backend: seluruh endpoint PRD 14.4, 8 tabel, migration + check constraint, seed 5 kategori/15 acara/2 akun demo.
-- Backend test: `npm test` → 83 tes lulus (auth, events, bookings, konkurensi stok, payments, tickets, isolasi data, fondasi storage upload, endpoint foto profil).
-- Frontend: 16 layar Fase 7 selesai; `flutter analyze` bersih dan `flutter test` 15 tes lulus.
+- Backend test: `npm test` → 85 tes lulus (auth, events, bookings, konkurensi stok, payments, tickets, isolasi data, fondasi storage upload, endpoint foto profil).
+- Frontend: 16 layar Fase 7 selesai; `flutter analyze` bersih dan `flutter test` 20 tes lulus.
 - Deployment: API Vercel sudah diuji untuk health, katalog, login, booking, pembayaran sukses, tiket + QR, pembatalan, dan kasus tepi seed.
 - Build APK rilis dengan URL produksi berhasil dibuat (≈53,6 MB, debug signing).
 - Belum diverifikasi: uji manual end-to-end di emulator/perangkat dan uji APK di perangkat fisik (dilakukan pemilik produk).
 
 ### Perluasan scope (disetujui 2026-11-23)
 
-Upload foto profil disetujui masuk scope. **Fase 1–4 selesai**; Fase 5 sudah memverifikasi upload nyata ke bucket `media` (upload, URL publik 200, hapus object), endpoint produksi Vercel setelah merge ke `main` (upload sukses, URL publik 200, profil cocok), `npm test` 83 lulus, `flutter analyze` bersih, `flutter test` 15 lulus, smoke upload mode `memory` berhasil, dan APK rilis berhasil dibangun. **Uji emulator/perangkat masih menunggu pemilik produk** karena tidak ada perangkat ADB. Detail ada di [DECISIONS.md](DECISIONS.md). PRD masih menyebut upload file di luar MVP sampai pemilik produk merevisinya.
+Upload foto profil disetujui masuk scope. **Fase 1–4 selesai**; Fase 5 sudah memverifikasi upload nyata ke bucket `media` (upload, URL publik 200, hapus object), endpoint produksi Vercel setelah merge ke `main` (upload sukses, URL publik 200, profil cocok), `npm test` 85 lulus, `flutter analyze` bersih, `flutter test` 20 lulus, smoke upload mode `memory` berhasil, dan APK rilis berhasil dibangun. **Uji emulator/perangkat masih menunggu pemilik produk** karena tidak ada perangkat ADB. Detail ada di [DECISIONS.md](DECISIONS.md). PRD masih menyebut upload file di luar MVP sampai pemilik produk merevisinya.
 
 ## API Produksi
 

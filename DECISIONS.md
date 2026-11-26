@@ -30,6 +30,7 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 | flutter_secure_storage | 11.2.0 |
 | qr_flutter | 4.1.0 |
 | intl | 0.20.3 |
+| flutter_localizations | SDK Flutter 3.47.0 |
 | provider | 6.1.5+1 |
 | image_picker | 1.2.4 |
 
@@ -434,3 +435,10 @@ Catatan keputusan dan asumsi implementasi TiketKita. PRD TiketKita v2.0 adalah s
 - **Alasan:** Status tetap konsisten dengan waktu tanpa menunggu job terjadwal, daftar default kembali sesuai D-14, dan pengguna tetap dapat mengenali acara yang tidak dapat dipesan saat status ditampilkan eksplisit.
 - **Dampak:** `backend/src/utils/sync-event-statuses.js`, `backend/src/modules/events/service.js`, `backend/tests/events.test.js`, `frontend/lib/models/event_summary.dart`, `frontend/lib/models/event_detail.dart`, `frontend/lib/widgets/event_card.dart`, `frontend/lib/screens/event_detail/event_detail_screen.dart`, `frontend/test/event_summary_test.dart`.
 - **Status:** diputuskan agent.
+
+## [2026-11-26] Fitur di luar MVP: urutkan dan filter acara berdasarkan tanggal
+- **Konteks:** PRD 3.2 membatasi MVP dan kontrak `GET /events` hanya memuat `q`, `categoryId`, `status`, `page`, dan `limit` (PRD 14.4). Pemilik produk meminta fitur tambahan berupa pengurutan berdasarkan tanggal, filter tanggal, dan tombol kalender untuk memilih satu tanggal tertentu.
+- **Pilihan:** Memperluas `GET /events` dengan query opsional `sort` (`date_asc` default, `date_desc`) dan `date` berformat `YYYY-MM-DD`. Tanggal ditafsirkan dalam WIB (UTC+7) dan mencakup acara multi-hari yang rentangnya melewati tanggal tersebut. Di Explore ditambahkan menu urutan (Terdekat/Terjauh) dan tombol kalender tanggal; memilih tanggal memuat ulang daftar, dan tombol hapus mengembalikan ke semua tanggal. Nilai `date`/`sort` tidak valid dijawab 422 sesuai pola validasi yang ada.
+- **Alasan:** Permintaan eksplisit pemilik produk; parameter opsional menjaga kompatibilitas klien lama dan perilaku default tetap sama dengan PRD.
+- **Dampak:** `backend/src/modules/events/validation.js`, `backend/src/modules/events/service.js`, `backend/tests/events.test.js`, `frontend/lib/services/event_service.dart`, `frontend/lib/screens/explore/explore_screen.dart`, `frontend/lib/core/utils/formatters.dart`. Ditambahkan dependensi SDK `flutter_localizations` (bukan paket pihak ketiga) beserta `localizationsDelegates`/`supportedLocales` di `main.dart` agar dialog kalender tampil dalam Bahasa Indonesia; alasan kuat: fitur baru menampilkan pemilih tanggal kepada pengguna.
+- **Status:** diputuskan pemilik produk; perlu dicatat sebagai fitur di luar cakupan PRD saat responsi.

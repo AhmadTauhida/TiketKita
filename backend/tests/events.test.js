@@ -155,6 +155,79 @@ describe('GET /api/v1/events', () => {
     expect(secondPage.body.data.items).toHaveLength(2);
     expect(secondPage.body.data.pagination.page).toBe(2);
   });
+
+  it('mengurutkan acara berdasarkan tanggal menaik dan menurun', async () => {
+    const category = await setupCategory();
+    const earlier = await createEvent({
+      categoryId: category.id,
+      title: 'Acara Lebih Awal',
+      eventDate: futureDate(2),
+    });
+    const later = await createEvent({
+      categoryId: category.id,
+      title: 'Acara Lebih Akhir',
+      eventDate: futureDate(10),
+    });
+
+    const asc = await request(app).get('/api/v1/events?sort=date_asc');
+    expect(asc.status).toBe(200);
+    expect(asc.body.data.items.map((item) => item.id)).toEqual([earlier.id, later.id]);
+
+    const desc = await request(app).get('/api/v1/events?sort=date_desc');
+    expect(desc.status).toBe(200);
+    expect(desc.body.data.items.map((item) => item.id)).toEqual([later.id, earlier.id]);
+  });
+
+  it('memfilter acara pada tanggal tertentu dalam WIB', async () => {
+    const category = await setupCategory();
+    const target = await createEvent({
+      categoryId: category.id,
+      title: 'Acara Tanggal Target',
+      eventDate: futureDate(5),
+    });
+    await createEvent({
+      categoryId: category.id,
+      title: 'Acara Tanggal Lain',
+      eventDate: futureDate(9),
+    });
+
+    const wibDate = new Date(target.eventDate.getTime() + 7 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+
+    const res = await request(app).get(`/api/v1/events?date=${wibDate}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.items).toHaveLength(1);
+    expect(res.body.data.items[0].id).toBe(target.id);
+  });
+
+  it('menyertakan acara multi-hari pada tanggal di dalam rentangnya', async () => {
+    const category = await setupCategory();
+    const multiDay = await createEvent({
+      categoryId: category.id,
+      title: 'Acara Multi Hari',
+      eventDate: futureDate(4),
+      endDate: futureDate(6),
+    });
+
+    const wibDate = new Date(futureDate(5).getTime() + 7 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+
+    const res = await request(app).get(`/api/v1/events?date=${wibDate}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.items.map((item) => item.id)).toContain(multiDay.id);
+  });
+
+  it('menolak format tanggal atau urutan yang tidak valid', async () => {
+    const invalidDate = await request(app).get('/api/v1/events?date=2026-13-40');
+    const invalidSort = await request(app).get('/api/v1/events?sort=title');
+
+    expect(invalidDate.status).toBe(422);
+    expect(invalidSort.status).toBe(422);
+  });
 });
 
 describe('GET /api/v1/events/featured', () => {

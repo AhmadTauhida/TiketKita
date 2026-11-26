@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/network/api_exception.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/formatters.dart';
 import '../../models/category.dart';
 import '../../models/event_summary.dart';
 import '../../routes/app_routes.dart';
@@ -43,6 +44,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
   List<Category> _categories = const [];
   List<EventSummary> _events = const [];
   String? _selectedCategoryId;
+  String _sort = 'date_asc';
+  DateTime? _selectedDate;
   String? _error;
   bool _loading = true;
   bool _loadingMore = false;
@@ -122,6 +125,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
       final page = await context.read<EventService>().getEvents(
             q: _searchController.text,
             categoryId: _selectedCategoryId,
+            sort: _sort,
+            date: _selectedDate == null
+                ? null
+                : formatDateQuery(_selectedDate!),
             page: reset ? 1 : _page + 1,
             limit: _pageSize,
           );
@@ -215,6 +222,38 @@ class _ExploreScreenState extends State<ExploreScreen> {
     _load(reset: true);
   }
 
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? now,
+      firstDate: DateTime(now.year - 2),
+      lastDate: DateTime(now.year + 5),
+      helpText: 'Pilih tanggal acara',
+    );
+
+    if (picked == null || !mounted) {
+      return;
+    }
+
+    setState(() => _selectedDate = picked);
+    _load(reset: true);
+  }
+
+  void _clearDate() {
+    setState(() => _selectedDate = null);
+    _load(reset: true);
+  }
+
+  void _selectSort(String sort) {
+    if (_sort == sort) {
+      return;
+    }
+
+    setState(() => _sort = sort);
+    _load(reset: true);
+  }
+
   void _openEvent(EventSummary event) {
     Navigator.of(context).pushNamed(
       AppRoutes.eventDetail,
@@ -242,6 +281,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 ),
                 const SizedBox(height: 12),
                 _buildSearchField(),
+                const SizedBox(height: 10),
+                _buildFilterBar(),
               ],
             ),
           ),
@@ -304,6 +345,91 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
+  Widget _buildFilterBar() {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: _pickDate,
+            icon: const Icon(Icons.calendar_month_rounded, size: 18),
+            label: Text(
+              _selectedDate == null
+                  ? 'Semua tanggal'
+                  : formatDateOnly(_selectedDate!),
+              overflow: TextOverflow.ellipsis,
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _selectedDate == null
+                  ? Theme.of(context).colorScheme.onSurfaceVariant
+                  : AppColors.primary,
+              side: BorderSide(
+                color: _selectedDate == null
+                    ? Theme.of(context).colorScheme.outlineVariant
+                    : AppColors.primary,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+        if (_selectedDate != null) ...[
+          const SizedBox(width: 4),
+          IconButton(
+            tooltip: 'Hapus filter tanggal',
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.close_rounded, size: 18),
+            onPressed: _clearDate,
+          ),
+        ],
+        const SizedBox(width: 8),
+        _buildSortMenu(),
+      ],
+    );
+  }
+
+  Widget _buildSortMenu() {
+    final isNearest = _sort == 'date_asc';
+
+    return PopupMenuButton<String>(
+      tooltip: 'Urutkan acara',
+      initialValue: _sort,
+      onSelected: _selectSort,
+      itemBuilder: (context) => const [
+        PopupMenuItem(
+          value: 'date_asc',
+          child: Text('Tanggal terdekat'),
+        ),
+        PopupMenuItem(
+          value: 'date_desc',
+          child: Text('Tanggal terjauh'),
+        ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.swap_vert_rounded, size: 18),
+            const SizedBox(width: 4),
+            Text(
+              isNearest ? 'Terdekat' : 'Terjauh',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const Icon(Icons.arrow_drop_down_rounded, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCategoryChip(String label, String? categoryId) {
     final selected = _selectedCategoryId == categoryId;
 
@@ -339,9 +465,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
         onRefresh: _refresh,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          children: const [
-            SizedBox(height: 96),
-            _EmptyState(),
+          children: [
+            const SizedBox(height: 96),
+            _EmptyState(hasDateFilter: _selectedDate != null),
           ],
         ),
       );
@@ -384,7 +510,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.hasDateFilter});
+
+  final bool hasDateFilter;
 
   @override
   Widget build(BuildContext context) {
@@ -399,15 +527,20 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Tidak ada acara ditemukan',
+            hasDateFilter
+                ? 'Tidak ada acara pada tanggal ini'
+                : 'Tidak ada acara ditemukan',
             style: Theme.of(context)
                 .textTheme
                 .titleMedium
                 ?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
           Text(
-            'Coba kata kunci atau kategori lain.',
+            hasDateFilter
+                ? 'Coba pilih tanggal lain atau hapus filter tanggal.'
+                : 'Coba kata kunci atau kategori lain.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall,
           ),

@@ -10,7 +10,7 @@ Fase 6 selesai: seluruh endpoint MVP, tes backend, koleksi Postman, konfigurasi 
 
 ## Perluasan scope: upload foto profil (Fase 1–4 selesai; bucket nyata terverifikasi)
 
-Upload foto profil disetujui pemilik produk pada 2026-11-23. **Fase 1–4 selesai**; endpoint dan UI Flutter tersedia. `npm test` 83 lulus. Upload nyata ke bucket `media` sudah diverifikasi dengan `service_role` legacy dan secret key baru (`sb_secret_...`): object dapat diunggah, URL publik merespons 200, dan object dapat dihapus. Endpoint produksi Vercel setelah merge ke `main` juga sudah diverifikasi: upload sukses, URL publik 200, profil mengembalikan URL yang sama, lalu object dan user sementara dibersihkan. Uji perangkat masih menunggu pemilik produk. Rencana yang sudah diputuskan:
+Upload foto profil disetujui pemilik produk pada 2026-11-23. **Fase 1–4 selesai**; endpoint dan UI Flutter tersedia. `npm test` 85 lulus. Upload nyata ke bucket `media` sudah diverifikasi dengan `service_role` legacy dan secret key baru (`sb_secret_...`): object dapat diunggah, URL publik merespons 200, dan object dapat dihapus. Endpoint produksi Vercel setelah merge ke `main` juga sudah diverifikasi: upload sukses, URL publik 200, profil mengembalikan URL yang sama, lalu object dan user sementara dibersihkan. Uji perangkat masih menunggu pemilik produk. Rencana yang sudah diputuskan:
 
 - Endpoint `POST /api/v1/users/profile/photo`, privat, `multipart/form-data`, field `photo`.
 - Respons memakai envelope yang sama dan mengembalikan `data.user` terbaru.
@@ -140,7 +140,7 @@ Server mendengarkan di `0.0.0.0` dan tidak memanggil `listen` saat berjalan di V
 npm test
 ```
 
-Tes berjalan pada schema `test`, menjalankan `prisma migrate deploy` sekali di awal, dan mengosongkan tabel antar-tes. Saat ini 83 tes mencakup seluruh skenario wajib PRD 18.1 (autentikasi, users, categories, events, bookings, konkurensi stok, pembayaran paralel, pembatalan, kedaluwarsa, tiket, dan isolasi data), fondasi storage upload, dan endpoint foto profil. Tes selalu memakai driver storage `memory` meskipun `.env` memakai Supabase.
+Tes berjalan pada schema `test`, menjalankan `prisma migrate deploy` sekali di awal, dan mengosongkan tabel antar-tes. Saat ini 85 tes mencakup seluruh skenario wajib PRD 18.1 (autentikasi, users, categories, events, bookings, konkurensi stok, pembayaran paralel, pembatalan, kedaluwarsa, tiket, dan isolasi data), fondasi storage upload, dan endpoint foto profil. Tes selalu memakai driver storage `memory` meskipun `.env` memakai Supabase.
 
 ## Endpoint
 
